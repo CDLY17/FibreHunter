@@ -46,6 +46,14 @@ canvas:focus-visible{box-shadow:0 0 0 3px var(--hivis)}
 .mobile-tip{display:none;margin:10px 0 0;color:var(--muted);text-align:center}
 html.touchmode .mobile-tip{display:block}
 html.touchmode canvas{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
+/* phones/tablets: stop long-press selection, callouts, link previews and double-tap zoom on the game */
+html.touchmode{-webkit-tap-highlight-color:transparent}
+html.touchmode body{touch-action:manipulation}
+html.touchmode .screen,html.touchmode .screen *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+html.touchmode .screen{touch-action:none}
+canvas,.touch button,.dpad,.dpad span{-webkit-user-drag:none}
+html.touchmode .screen .post,html.touchmode .screen .post *{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default;touch-action:manipulation}
+html.touchmode .screen .post button{-webkit-user-select:none;user-select:none}
 /* immersive play mode for phones and tablets */
 html.immersive,html.immersive body{overflow:hidden;overscroll-behavior:none;height:100%}
 .screen.immersive{position:fixed;inset:0;z-index:100;border-radius:0;box-shadow:none;display:flex;flex-direction:column;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);touch-action:none;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
@@ -631,6 +639,16 @@ addEventListener('blur',()=>{keys.left=keys.right=keys.jump=false;if(state==='pl
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&state==='play')state='pause'});
 let touchMode=false,immersive=false;
 const screenEl=document.querySelector('.screen');
+// Mobile browser guards: no text selection, context menus, link previews, double-tap zoom or pull-to-refresh while playing.
+const typingArea=t=>!!(t&&t.closest&&t.closest('.post,.share,input,textarea,select'));
+const guardDefault=e=>{if(!typingArea(e.target))e.preventDefault()};
+screenEl.addEventListener('contextmenu',guardDefault);
+screenEl.addEventListener('selectstart',guardDefault);
+screenEl.addEventListener('dblclick',guardDefault);
+screenEl.addEventListener('dragstart',guardDefault);
+screenEl.addEventListener('touchstart',e=>{if(immersive||e.touches.length>1)guardDefault(e)},{passive:false});
+document.addEventListener('touchmove',e=>{if(immersive)guardDefault(e)},{passive:false});
+document.addEventListener('gesturestart',e=>{if(immersive)e.preventDefault()});
 function setTouchMode(){if(touchMode)return;touchMode=true;document.documentElement.classList.add('touchmode')}
 try{if(matchMedia('(pointer:coarse)').matches||(navigator.maxTouchPoints>0&&matchMedia('(hover:none)').matches))setTouchMode()}catch(e){}
 addEventListener('touchstart',()=>{setTouchMode();ensureAudio()},{passive:true,capture:true});
