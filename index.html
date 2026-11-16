@@ -206,6 +206,7 @@ ol.worlds b{color:var(--hazard);font-weight:normal}
         <dt><span class="sw" style="background:#ff4fa0"></span>Removal monster</dt><dd>Two stabs or one thrown chisel · 250</dd>
         <dt><span class="sw" style="background:#9cc3e6"></span>Bystanders</dt><dd>Leave them alone. Hitting one costs 200.</dd>
         <dt><span class="sw" style="background:#38e0ff"></span>Scuba mask</dt><dd>5 seconds of immunity. Anything hostile you touch is destroyed.</dd>
+        <dt><span class="sw" style="background:#ff3b4f"></span>Lives</dt><dd>Start with 4. A perfect site (no asbestos missed, no lives lost) earns an extra life, up to 5.</dd>
         <dt><span class="sw" style="background:#ff7a1a"></span>Throwing chisel</dt><dd>+5 chisels. Carry up to 10, and you start each site with none.</dd>
       </dl>
     </div>
@@ -379,10 +380,10 @@ let state='title',level=1,score=0,hi=+LS.get('fibreHunterHi')||0,frameN=0;
 let solids=[],enemies=[],pickups=[],shots=[],parts=[],floaters=[],hazards=[],npcs=[];
 let decon,levelLen=0,worldEnd=0,camX=0,clearBonus=0,flash=0,shake=0,arena=null,boss=null,banner=null,windT=0,spawn={drop:200,debris:240,ammo:400},bossMaskGiven=false;
 let WD=WORLDS[0];
-let shed=null,cavs=[],props=[],siteStartScore=0,labBonus=0;
+let lifeGained=false,shed=null,cavs=[],props=[],siteStartScore=0,labBonus=0;
 const SHED_FRAMES=1800,SHED_WD={key:'shed',name:'BONUS SHED',kinds:[],asb:1,npcs:null,music:{mode:'major',bpm:168},boss:{name:'',suit:'#ffffff',filt:'#ffffff'}};
 let mult=1,cheatUsed=false,cheatBuf='',cheatTaps=[],lostLife=false,perfectPrev=false,mesoAt=-1,mesoT=0,lvlFrames=0,deathCause='';
-const MAX_AMMO=10,VAC_FRAMES=600,VAC_R=120,MESO_CHANCE=0.07;
+const BASE_LIVES=4,MAX_LIVES=5,MAX_AMMO=10,VAC_FRAMES=600,VAC_R=120,MESO_CHANCE=0.07;
 function addPts(n){const v=Math.round(n*mult);score+=v;return v}
 const xTag=()=>mult>1?' x'+mult:'';
 const worldIdx=()=>Math.floor((level-1)/3)%5,stageN=()=>(level-1)%3+1,loopN=()=>Math.floor((level-1)/15);
@@ -533,7 +534,7 @@ const MAP={ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',Space:'j
 const postForm=document.getElementById('postForm');
 function activateCheat(){if(state!=='play'||mesoT)return;if(cheatUsed){banner={t:80,big:'CHEAT ALREADY USED',small:'One per site. Try again on the next one'};return}cheatUsed=true;mult=2;sfx.cheat();banner={t:110,big:'CHEAT: x2 POINTS',small:'For the rest of this site'}}
 function confirmRole(){role=ROLE_ORDER[selIdx]||'assessor';LS.set('fhRole',role);sfx.pick();startRun()}
-function startRun(){level=1;score=0;perfectPrev=false;deathCause='';p.hp=3;p.ammo=0;genLevel();state='play'}
+function startRun(){level=1;score=0;perfectPrev=false;deathCause='';p.hp=BASE_LIVES;p.ammo=0;lifeGained=false;genLevel();state='play'}
 function press(a){
   ensureAudio();
   if(a==='mute'){muted=!muted;LS.set('fhMute',muted?'1':'0');if(master)master.gain.value=muted?0:0.9;return}
@@ -541,7 +542,7 @@ function press(a){
   if(a==='pause'){if(state==='play')state='pause';else if(state==='pause')state='play';return}
   if(state==='title'||state==='over'){if(a==='jump'||a==='start'){state='select';selIdx=Math.max(0,ROLE_ORDER.indexOf(role))}return}
   if(state==='select'){if(a==='jump'||a==='start'||a==='act')confirmRole();return}
-  if(state==='clear'||state==='worldclear'||state==='sheddone'){if(a==='jump'||a==='start'){p.hp=3;if(state==='worldclear'&&worldIdx()===1){genShed()}else{level++;genLevel()}state='play'}return}
+  if(state==='clear'||state==='worldclear'||state==='sheddone'){if(a==='jump'||a==='start'){p.hp=Math.max(p.hp,BASE_LIVES);lifeGained=false;if(state==='worldclear'&&worldIdx()===1){genShed()}else{level++;genLevel()}state='play'}return}
   if(state==='pause'){if(a==='jump'||a==='start')state='play';return}
   if(a==='jump'){keys.jump=true;p.jumpBuf=8}
   if(a==='act')attack();
@@ -778,7 +779,7 @@ function update(){
     if(ov(p,k)){k.gone=true;sfx.pick();
       if(k.type==='chisel'){const got=Math.min(5,MAX_AMMO-p.ammo);p.ammo+=got;addPts(50);floaters.push({x:k.x-14,y:k.y-6,txt:got>0?'+'+got+' CHISEL'+(got>1?'S':'')+(p.ammo>=MAX_AMMO?' (MAX)':''):'CHISELS FULL',t:60,col:'#ff7a1a'})}
       else if(k.type==='mask'){p.mask=300;sfx.mask();floaters.push({x:k.x-18,y:k.y-6,txt:'SCUBA MASK!',t:70,col:'#38e0ff'})}
-      else{if(p.hp<3)p.hp++;else addPts(100);floaters.push({x:k.x-10,y:k.y-6,txt:'FIRST AID',t:60,col:'#5bd17a'})}}}
+      else{if(p.hp<BASE_LIVES)p.hp++;else addPts(100);floaters.push({x:k.x-10,y:k.y-6,txt:'FIRST AID',t:60,col:'#5bd17a'})}}}
   pickups=pickups.filter(k=>!k.gone);
   for(const q of parts){q.x+=q.vx;q.y+=q.vy;q.vy+=q.g;q.t--}parts=parts.filter(q=>q.t>0);
   if(parts.length>500)parts.splice(0,parts.length-500);
@@ -794,7 +795,8 @@ function update(){
   // goal
   if(!shed&&p.x+p.w>decon.x+30){
     const allFound=!enemies.some(e=>e.type==='asb');labBonus=role==='labtech'&&allFound?Math.round((score-siteStartScore)*0.10):0;score+=labBonus;
-    perfectPrev=!lostLife&&allFound;clearBonus=Math.round((p.hp*500+p.ammo*25+level*1000)*mult);score+=clearBonus;sfx.clear();saveHi();
+    perfectPrev=!lostLife&&allFound;clearBonus=Math.round((Math.min(p.hp,3)*500+p.ammo*25+level*1000)*mult);score+=clearBonus;sfx.clear();saveHi();
+    lifeGained=false;if(perfectPrev&&p.hp<MAX_LIVES){p.hp++;lifeGained=true;setTimeout(()=>sfx.pick(),500)}
     state=stageN()===3?'worldclear':'clear';
     if(state==='worldclear')autoPost();
   }
@@ -1070,12 +1072,12 @@ function drawBoss(){
 /* ================= HUD & screens ================= */
 function hud(){
   rect(0,0,W,16,'rgba(8,9,14,0.75)');
-  for(let i=0;i<3;i++)ctx.drawImage(i<p.hp?HEART:HEART0,6+i*9,5);
-  ctx.save();ctx.translate(40,8);drawChisel(0,-1,1);ctx.restore();text('x'+p.ammo,54,5,p.ammo>=MAX_AMMO?'#f5c400':p.ammo?'#ff7a1a':'#6b7080');
+  for(let i=0;i<MAX_LIVES;i++)ctx.drawImage(i<p.hp?HEART:HEART0,6+i*9,5);
+  ctx.save();ctx.translate(58,8);drawChisel(0,-1,1);ctx.restore();text('x'+p.ammo,72,5,p.ammo>=MAX_AMMO?'#f5c400':p.ammo?'#ff7a1a':'#6b7080');
   text(shed?'BONUS SHED':(worldIdx()+1)+'-'+stageN()+' '+WD.name,W/2+6,5,'#f5c400',6,'center');
   text(String(score).padStart(7,'0'),W-6,5,'#ebe6d6',8,'right');
   if(mult>1)text('x'+mult,W-66,5,'#f5c400',8,'right');
-  {const left=enemies.filter(e=>e.type==='asb').length;ctx.drawImage(ASB.chrysotile.spr,84,4,10,7);text(String(left),97,5,left?'#ebe6d6':'#5bd17a',6)}
+  {const left=enemies.filter(e=>e.type==='asb').length;ctx.drawImage(ASB.chrysotile.spr,104,4,10,7);text(String(left),117,5,left?'#ebe6d6':'#5bd17a',6)}
   const goal=decon.x+30,prog=shed?shed.t/SHED_FRAMES:Math.max(0,Math.min(1,p.x/goal));rect(0,16,W,2,'#1d2029');rect(0,16,Math.round(W*prog),2,'#ff7a1a');
   if(arena){const ax=Math.round(W*arena.x/goal);rect(ax,15,2,4,'#ff3b4f')}
   let by=22;const bar=(lbl,t,max,col)=>{rect(W/2-50,by,100,12,'rgba(8,9,14,0.7)');rect(W/2-48,by+8,Math.round(96*t/max),2,col);text(lbl+' '+(t/60).toFixed(1)+'s',W/2,by,col,6,'center');by+=14};
@@ -1147,10 +1149,10 @@ function draw(){
   if(mesoT){ctx.globalAlpha=Math.min(0.5,mesoT/500);rect(0,0,W,H,'#14161c');ctx.globalAlpha=1}
   hud();
   if(state==='pause')panel([['PAUSED','#f5c400',12],[touchMode?'TAP the screen to resume':'P or SPACE to resume','#9aa0ae',6],['N music  ·  M mute','#9aa0ae',6]],72);
-  if(state==='clear')panel([['SITE CLEARED','#f5c400',12],...(perfectPrev?[['PERFECT! No asbestos missed, no lives lost','#f5c400',6],['Super Vacuum ready for the next site','#f5c400',6]]:[['Clearance certificate issued by SQN.','#ebe6d6',6]]),...(labBonus?[['LAB TECH: ALL ASBESTOS FOUND +'+labBonus,'#5bd17a',6]]:[]),['Bonus +'+clearBonus,'#38e0ff',8],['Score '+score,'#ebe6d6',8],[(touchMode?'TAP':'SPACE')+' for site '+(worldIdx()+1)+'-'+(stageN()+1),'#ff7a1a',6]],52);
+  if(state==='clear')panel([['SITE CLEARED','#f5c400',12],...(perfectPrev?[['PERFECT! No asbestos missed, no lives lost','#f5c400',6],[lifeGained?'EXTRA LIFE! Plus a Super Vacuum next site':'Super Vacuum ready (max 5 lives already)','#f5c400',6]]:[['Clearance certificate issued by SQN.','#ebe6d6',6]]),...(labBonus?[['LAB TECH: ALL ASBESTOS FOUND +'+labBonus,'#5bd17a',6]]:[]),['Bonus +'+clearBonus,'#38e0ff',8],['Score '+score,'#ebe6d6',8],[(touchMode?'TAP':'SPACE')+' for site '+(worldIdx()+1)+'-'+(stageN()+1),'#ff7a1a',6]],52);
   if(state==='sheddone')panel([['BONUS ROUND OVER','#f5c400',12],['Free round: no lives lost','#9aa0ae',6],['Openings '+shed.opened+' of '+cavs.length+'   Asbestos '+shed.smashed+' of '+shed.total,'#ebe6d6',6],...(shed.all?[['EVERY PIECE! +'+shed.all,'#f5c400',6]]:[]),...(shed.lab?[['LAB TECH: ALL ASBESTOS FOUND +'+shed.lab,'#5bd17a',6]]:[]),['Score '+score,'#ebe6d6',8],[(touchMode?'TAP':'SPACE')+' for world 3','#ff7a1a',6]],52);
   if(state==='worldclear'){const nw=WORLDS[(worldIdx()+1)%5],looped=worldIdx()===4;
-    panel([[looped?'ALL 5 WORLDS CLEARED':'WORLD CLEARED','#f5c400',looped?10:12],['Bonus +'+clearBonus+'   Score '+score,'#ebe6d6',6],...(labBonus?[['LAB TECH: ALL ASBESTOS FOUND +'+labBonus,'#5bd17a',6]]:[]),...(perfectPrev?[['PERFECT! Super Vacuum ready next site','#f5c400',6]]:[]),[looped?'The crews are back, and tougher':worldIdx()===1?'First, a bonus round:':'Next world:','#9aa0ae',6],[worldIdx()===1?'THE SMASH-IT-UP SHED':nw.name,'#38e0ff',8],[(touchMode?'TAP':'SPACE')+' to continue','#ff7a1a',6]],52)}
+    panel([[looped?'ALL 5 WORLDS CLEARED':'WORLD CLEARED','#f5c400',looped?10:12],['Bonus +'+clearBonus+'   Score '+score,'#ebe6d6',6],...(labBonus?[['LAB TECH: ALL ASBESTOS FOUND +'+labBonus,'#5bd17a',6]]:[]),...(perfectPrev?[['PERFECT! '+(lifeGained?'Extra life + ':'')+'Super Vacuum next site','#f5c400',6]]:[]),[looped?'The crews are back, and tougher':worldIdx()===1?'First, a bonus round:':'Next world:','#9aa0ae',6],[worldIdx()===1?'THE SMASH-IT-UP SHED':nw.name,'#38e0ff',8],[(touchMode?'TAP':'SPACE')+' to continue','#ff7a1a',6]],52)}
   if(state==='over'&&postForm.hidden)panel([[deathCause||'GAME OVER','#ff3b4f',deathCause?10:12],...(deathCause?[['Asbestos kills. Always wear your RPE.','#9aa0ae',6]]:[]),['Reached '+(worldIdx()+1)+'-'+stageN()+' '+WD.name,'#ebe6d6',6],['Score '+score+'   Best '+hi,'#ebe6d6',8],[(touchMode?'TAP':'SPACE')+' to try again','#ff7a1a',6]],60);
 }
 
