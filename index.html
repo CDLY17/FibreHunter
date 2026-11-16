@@ -352,8 +352,8 @@ const ASB={
   amosite:{pal:{L:'#d9b48a',G:'#a9825a',D:'#6f5236',F:'#f0d9b5'},pts:150,name:'AMOSITE'},
   crocidolite:{pal:{L:'#a9c6e8',G:'#5f86b8',D:'#2e4d7a',F:'#d6e8ff'},pts:200,name:'CROCIDOLITE'}};
 for(const k in ASB)ASB[k].spr=sprite(asbRows,ASB[k].pal);
-// Small asbestos debris from collapsed buildings: 10 points, harmless to touch, not needed for a perfect site.
-ASB.debris={pal:{L:'#dcd8cc',G:'#a8a498',D:'#77746b',F:'#efebe0'},pts:10,name:'DEBRIS',spr:sprite(['..LL.L..','.LGGLGL.','LGDGGGDL','.LLGLLL.'],{L:'#dcd8cc',G:'#a8a498',D:'#77746b'})};
+// Small asbestos debris from collapsed buildings: 10 points, picked up by running over it, not needed for a perfect site.
+ASB.debris={pal:{L:'#dcd8cc',G:'#a8a498',D:'#77746b',F:'#efebe0'},pts:10,name:'DUST & DEBRIS',spr:sprite(['..LL.L..','.LGGLGL.','LGDGGGDL','.LLGLLL.'],{L:'#dcd8cc',G:'#a8a498',D:'#77746b'})};
 const isDebris=e=>e.type==='asb'&&e.kind==='debris';
 const heartRows=[".HH.HH.","HHHHHHH","HHHHHHH",".HHHHH.","..HHH..","...H..."];
 const HEART=sprite(heartRows,{H:'#ff3b4f'}),HEART0=sprite(heartRows,{H:'#3a3f4a'});
@@ -813,7 +813,7 @@ function damage(e,d,src){
 }
 function kill(e,src){
   e.dead=true;sfx.kill();
-  if(e.type==='asb'){const a=ASB[e.kind],sm=role==='surveyor'&&p.mask>0?2:1;const v=addPts(a.pts*sm);const mb=p.mask>0&&e.kind!=='debris';if(mb)p.mask+=MASK_BONUS;floaters.push({x:e.x,y:e.y-6,txt:'+'+v+' '+a.name+(sm>1?' MASK x2':'')+xTag()+(mb?' +1.2s':''),t:70,col:a.pal.L});burst(e.x+7,e.y+5,a.pal.L,14);burst(e.x+7,e.y+5,a.pal.G,8);
+  if(e.type==='asb'){const a=ASB[e.kind],sm=role==='surveyor'&&p.mask>0?2:1;const v=addPts(a.pts*sm);const mb=p.mask>0&&e.kind!=='debris';if(mb)p.mask+=MASK_BONUS;if(e.kind==='debris'){floaters.push({x:e.x-24,y:e.y-14,txt:'+'+v+' DUST & DEBRIS'+(sm>1?' x2':''),t:55,col:'#f5c400'});burst(e.x+4,e.y+2,'#dcd8cc',10);burst(e.x+4,e.y,'#f5c400',4)}else floaters.push({x:e.x,y:e.y-6,txt:'+'+v+' '+a.name+(sm>1?' MASK x2':'')+xTag()+(mb?' +1.2s':''),t:70,col:a.pal.L});burst(e.x+7,e.y+5,a.pal.L,14);burst(e.x+7,e.y+5,a.pal.G,8);
     if(rnd()<0.08)addPick('chisel',e.x,e.y-6,false)}
   else{const v=addPts(e.angry?Math.round(250*ANGRY_BONUS):250);floaters.push({x:e.x-6,y:e.y-6,txt:'+'+v+xTag(),t:60,col:'#ff4fa0'});burst(e.x+7,e.y+10,'#e9edf2',16);burst(e.x+7,e.y+8,'#ff4fa0',8);
     const r=rnd();if(r<0.3)addPick('chisel',e.x,e.y,false);else if(r<0.38)addPick('mask',e.x,e.y,false);else if(r<0.46)addPick('medkit',e.x,e.y,false)}
@@ -977,6 +977,7 @@ function update(){
       if(e.y>H+40)e.dead=true}
     if(!e.dead&&p.vac>0&&e.type==='asb'){const dx=p.x+5-(e.x+7),dy=p.y+8-(e.y+5),d=Math.hypot(dx,dy)||1;
       if(d<VAC_R){e.suck=(e.suck||0)+1;const sp=Math.min(4.5,0.6+e.suck*0.09);e.x+=dx/d*sp;e.y+=dy/d*sp;if(d<10){kill(e,'vac');continue}}}
+    if(!e.dead&&isDebris(e)&&ov(p,{x:e.x-2,y:e.y-6,w:e.w+4,h:e.h+6})){kill(e,'touch');continue}
     if(!e.dead&&ov(p,e)){if(p.mask>0||(p.vac>0&&e.type==='asb'))kill(e,'mask');else if(p.inv<=0&&!shed&&e.kind!=='debris')hurt(e)}
   }
   enemies=enemies.filter(e=>!e.dead);
