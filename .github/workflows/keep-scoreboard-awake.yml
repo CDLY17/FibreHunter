@@ -1,0 +1,24 @@
+# Keeps the Fibre Hunter scoreboard (Supabase free plan) from pausing.
+# Runs every 3 days and reads one row from the scores table, which counts as activity.
+# You can also run it by hand: Actions tab > Keep scoreboard awake > Run workflow.
+name: Keep scoreboard awake
+
+on:
+  schedule:
+    - cron: '23 20 */3 * *'   # every 3 days at 20:23 UTC (about 9:23am NZ)
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read the scoreboard
+        run: |
+          code=$(curl -sS -o /dev/null -w "%{http_code}" \
+            "https://rptbjrqczeeoeiyplplr.supabase.co/rest/v1/scores?select=id&limit=1" \
+            -H "apikey: sb_publishable_2TyJgkHi-0zLE7o10X2u8g_9wxso0D0")
+          echo "Supabase answered HTTP $code"
+          if [ "$code" != "200" ]; then
+            echo "::error::Scoreboard did not answer normally (HTTP $code). It may be paused: open supabase.com and click Restore project."
+            exit 1
+          fi
