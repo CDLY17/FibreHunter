@@ -379,7 +379,7 @@ let state='title',level=1,score=0,hi=+LS.get('fibreHunterHi')||0,frameN=0;
 let solids=[],enemies=[],pickups=[],shots=[],parts=[],floaters=[],hazards=[],npcs=[];
 let decon,levelLen=0,worldEnd=0,camX=0,clearBonus=0,flash=0,shake=0,arena=null,boss=null,banner=null,windT=0,spawn={drop:200,debris:240,ammo:400},bossMaskGiven=false;
 let WD=WORLDS[0];
-let shed=null,props=[],siteStartScore=0,labBonus=0;
+let shed=null,cavs=[],props=[],siteStartScore=0,labBonus=0;
 const SHED_FRAMES=1800,SHED_WD={key:'shed',name:'BONUS SHED',kinds:[],asb:1,npcs:null,music:{mode:'major',bpm:168},boss:{name:'',suit:'#ffffff',filt:'#ffffff'}};
 let mult=1,cheatUsed=false,cheatBuf='',cheatTaps=[],lostLife=false,perfectPrev=false,mesoAt=-1,mesoT=0,lvlFrames=0,deathCause='';
 const MAX_AMMO=10,VAC_FRAMES=600,VAC_R=120,MESO_CHANCE=0.07;
@@ -417,30 +417,62 @@ function genLevel(){
   const mF=WD.drops?[0.2,0.45,0.7,0.9]:lp>0||worldIdx()>1?[0.22,0.5,0.78]:[0.3,0.68];
   for(const f of mF)placeFloating('mask',len*f);
   Object.assign(p,{x:40,y:GY-16,vx:0,vy:0,inv:60,mask:0,vac:0,ammo:0,attackT:0,safe:{x:40,y:GY-16}});
-  mult=1;cheatUsed=false;lostLife=false;lvlFrames=0;shed=null;siteStartScore=score;labBonus=0;props=[{kind:'sqnsign',x:150}];mesoT=0;mesoAt=rnd()<MESO_CHANCE?RIr(1200,3600):-1;
+  mult=1;cheatUsed=false;lostLife=false;lvlFrames=0;shed=null;cavs=[];siteStartScore=score;labBonus=0;props=[{kind:'sqnsign',x:150}];mesoT=0;mesoAt=rnd()<MESO_CHANCE?RIr(1200,3600):-1;
   camX=0;windT=0;spawn={drop:220,debris:260,ammo:400};
   banner={t:160,big:(worldIdx()+1)+'-'+st+'  '+WD.name,small:bossLvl?'Boss at the end of this site':(st===1&&lp>0?'Loop '+(lp+1)+': tougher crews':'Clear the site, reach the decon unit')};
   if(perfectPrev){p.vac=VAC_FRAMES;perfectPrev=false;banner.small='Perfect last site: you start with a SUPER VACUUM';setTimeout(()=>sfx.vac(),300)}
   playSong('lvl'+level,1000+level*31,WD.music.mode,WD.music.bpm+lp*4,false);
 }
+const CAV_TYPES={
+  wall:{hp:3,name:'WALL CAVITY',n:[1,3],kinds:['chrysotile','chrysotile','chrysotile','amosite'],empty:0.18},
+  riser:{hp:5,name:'PIPE RISER',n:[3,5],kinds:['amosite','amosite','chrysotile','chrysotile','crocidolite'],empty:0.06},
+  duct:{hp:8,name:'PLANT DUCT',n:[4,7],kinds:['crocidolite','crocidolite','amosite','amosite','chrysotile'],empty:0}};
 function genShed(){
-  WD=SHED_WD;seedFn=mulberry(9001+level);
-  solids=[];enemies=[];pickups=[];shots=[];parts=[];floaters=[];hazards=[];npcs=[];boss=null;arena=null;props=[];
+  WD=SHED_WD;seedFn=mulberry(9001+level+((rnd()*1e6)|0));
+  solids=[];enemies=[];pickups=[];shots=[];parts=[];floaters=[];hazards=[];npcs=[];boss=null;arena=null;props=[];cavs=[];
   const L=W*2;levelLen=L;worldEnd=L;
   solids.push({x:-40,y:GY,w:L+80,h:H-GY+40,kind:'ground',seed:7});
   solids.push({x:-40,y:-40,w:40,h:GY+40,kind:'shedwall'},{x:L,y:-40,w:40,h:GY+40,kind:'shedwall'});
-  const boxes=[[118,30,22],[300,34,40],[470,30,22],[640,40,30]].map(b=>addBox(b[0],b[1],b[2],'crates'));
-  const planks=[[180,GY-42,74],[372,GY-60,64],[530,GY-38,80],[680,GY-72,64]].map(q=>{const o={x:q[0],y:q[1],w:q[2],h:5,kind:'plank',oneway:true,seed:0};solids.push(o);return o});
-  const put=(x,y)=>enemies.push({type:'asb',kind:pick(['chrysotile','chrysotile','amosite','crocidolite']),x,y:y-10,w:14,h:10,hp:1,t:RI(0,60),flash:0});
-  for(let x=90;x<L-30;x+=RI(24,40)){if(!boxes.some(b=>x+14>b.x-4&&x<b.x+b.w+4))put(x,GY)}
-  for(const b of boxes)for(let x=b.x+2;x<b.x+b.w-12;x+=16)put(x,b.y);
-  for(const q of planks)for(let x=q.x+6;x<q.x+q.w-14;x+=22)put(x,q.y);
+  const P=[[150,GY-46,96],[330,GY-84,92],[470,GY-46,92],[620,GY-86,96]].map(q=>{const o={x:q[0],y:q[1],w:q[2],h:5,kind:'plank',oneway:true,seed:0};solids.push(o);return o});
+  const add=(x,bottom,w,h,type)=>{const T=CAV_TYPES[type];let n=rnd()<T.empty?0:RI(T.n[0],T.n[1]),kinds=[];
+    if(type==='duct'&&rnd()<0.12){n=9;for(let i=0;i<n;i++)kinds.push('crocidolite')}else for(let i=0;i<n;i++)kinds.push(pick(T.kinds));
+    cavs.push({type,x,y:bottom-h,w,h,hp:T.hp,max:T.hp,open:false,kinds,shake:0,seed:RI(0,999)})};
+  add(98,GY,26,22,'wall');add(212,GY,22,118,'riser');add(268,GY,44,32,'duct');add(392,GY,26,22,'wall');
+  add(436,GY,22,130,'riser');add(560,GY,26,22,'wall');add(690,GY,44,32,'duct');
+  add(178,P[0].y,26,22,'wall');add(352,P[1].y,26,22,'wall');add(400,P[1].y,26,22,'wall');add(500,P[2].y,44,30,'duct');
+  add(640,P[3].y,26,22,'wall');add(592,GY,22,124,'riser');
+  for(const x of[60,150])enemies.push({type:'asb',kind:'chrysotile',x,y:GY-10,w:14,h:10,hp:1,t:RI(0,60),flash:0});
   decon={x:1e6,y:GY-36,w:70,h:36};
-  Object.assign(p,{x:40,y:GY-16,vx:0,vy:0,inv:0,mask:0,vac:0,ammo:MAX_AMMO,attackT:0,safe:{x:40,y:GY-16}});
+  Object.assign(p,{x:30,y:GY-16,vx:0,vy:0,inv:0,mask:0,vac:0,ammo:MAX_AMMO,attackT:0,safe:{x:30,y:GY-16}});
   mult=1;cheatUsed=false;mesoAt=-1;mesoT=0;lvlFrames=0;siteStartScore=score;labBonus=0;camX=0;windT=0;
-  shed={t:SHED_FRAMES,total:enemies.length,smashed:0,all:0,lab:0};
-  banner={t:150,big:'BONUS: SMASH-IT-UP SHED',small:'Smash all the old fibre-cement you can in 30 seconds'};
+  shed={t:SHED_FRAMES,total:enemies.length+cavs.reduce((a,c)=>a+c.kinds.length,0),smashed:0,opened:0,all:0,lab:0,lives:p.hp};
+  banner={t:170,big:'FREE BONUS ROUND',small:'Bash open walls, risers and ducts. 30 seconds, no lives at risk'};
   playSong('shed',555+level,'major',168,true);
+}
+function hitCav(c,src){
+  if(c.open)return;c.hp--;c.shake=8;sfx.clink();
+  for(let i=0;i<5;i++)parts.push({x:c.x+rnd()*c.w,y:c.y+rnd()*c.h,vx:(rnd()-.5)*2,vy:-rnd()*1.5,t:26,col:['#d8d4c6','#bdb9ac','#8f8b80'][i%3],g:0.12});
+  if(c.hp>0){floaters.push({x:c.x+c.w/2-6,y:c.y-8,txt:c.hp+'',t:22,col:'#ebe6d6'});return}
+  c.open=true;shed.opened++;sfx.boom();shake=8;
+  for(let i=0;i<16;i++)parts.push({x:c.x+rnd()*c.w,y:c.y+rnd()*c.h,vx:(rnd()-.5)*3,vy:-rnd()*2.5,t:30+rnd()*20,col:['#d8d4c6','#bdb9ac','#efe9da'][i%3],g:0.14});
+  const n=c.kinds.length;
+  floaters.push({x:c.x+c.w/2-30,y:c.y-12,txt:n?CAV_TYPES[c.type].name+': '+n+' FOUND':'ALL CLEAR: NONE INSIDE',t:70,col:n?'#f5c400':'#9aa0ae'});
+  c.kinds.forEach((k,i)=>{const sx=c.x+c.w/2-7+(rnd()-.5)*Math.max(0,c.w-14),sy=c.y+Math.min(c.h-10,(i/Math.max(1,n))*c.h);
+    enemies.push({type:'asb',kind:k,x:sx,y:sy,w:14,h:10,hp:1,t:RI(0,60),flash:0,fall:true,vx:(rnd()-.5)*1.6,vy:-1.2-rnd()*1.2})});
+  c.kinds=[];
+}
+function drawCav(c){
+  const sx=c.shake>0?Math.round((rnd()-0.5)*2):0,X=Math.round(c.x)+sx,Y=Math.round(c.y),w=c.w,h=c.h;
+  if(c.open){rect(X,Y,w,h,'#141311');rect(X,Y,w,2,'#2a2824');for(let i=0;i<w;i+=4)rect(X+i,Y+((hash(i,c.seed,1)*3)|0),3,2,'#bdb9ac');for(let i=0;i<h;i+=5){rect(X,Y+i,2,3,'#bdb9ac');rect(X+w-2,Y+i,2,3,'#bdb9ac')}
+    if(c.type==='riser'){rect(X+w/2-3,Y,6,h,'#5a5e66');rect(X+w/2-3,Y,2,h,'#7b8088')}if(c.type==='duct'){rect(X+3,Y+h-6,w-6,3,'#3a3d47')}return}
+  const face=c.type==='duct'?'#9aa0aa':'#cfcbbd',edge=c.type==='duct'?'#6f757f':'#8f8b80';
+  rect(X,Y,w,h,face);rect(X,Y,w,1,edge);rect(X,Y+h-1,w,1,edge);rect(X,Y,1,h,edge);rect(X+w-1,Y,1,h,edge);
+  rect(X+2,Y+2,1,1,'#5a5e66');rect(X+w-3,Y+2,1,1,'#5a5e66');rect(X+2,Y+h-3,1,1,'#5a5e66');rect(X+w-3,Y+h-3,1,1,'#5a5e66');
+  if(c.type==='duct')for(let yy=Y+5;yy<Y+h-4;yy+=3)rect(X+5,yy,w-10,1,'#5a5e66');
+  if(c.type==='riser'){rect(X+3,Y+h/2-8,w-6,16,'#bdb9ac');rect(X+3,Y+h/2-8,w-6,1,edge);label('R',X+w/2+1,Y+h/2-3,'#6f6c63')}
+  if(c.type==='wall'){label('?',X+w/2+1,Y+h/2-3,'#8f8b80')}
+  const dmg=1-c.hp/c.max;if(dmg>0){const lines=Math.ceil(dmg*5);for(let i=0;i<lines;i++){const x0=X+3+((hash(i,c.seed,2)*(w-6))|0),y0=Y+3+((hash(i,c.seed,3)*(h-6))|0);thick(x0,y0,x0+((hash(i,c.seed,4)*8)|0)-4,y0+6,1,'#4e4b44')}}
+  if(c.hp<c.max){rect(X,Y-4,w,2,'#2a2824');rect(X,Y-4,Math.round(w*c.hp/c.max),2,'#ff7a1a')}
 }
 function placeFloating(type,x){
   for(const s of solids){if(s.kind!=='ground'&&!s.oneway&&x>s.x-12&&x<s.x+s.w){addPick(type,s.x+s.w/2-6,s.y-30);return}}
@@ -691,17 +723,19 @@ function update(){
     for(const e of enemies)if(!e.dead&&!p.hitSet.has(e)&&ov(b,e)){p.hitSet.add(e);damage(e,1,'stab')}
     if(boss&&!p.hitSet.has(boss)&&ov(b,boss)){p.hitSet.add(boss);damage(boss,1,'stab')}
     for(const h of hazards)if(h.hittable&&!h.dead&&ov(b,h)){h.dead=true;const v=addPts(50);burst(h.x+4,h.y+4,'#e9e4d6',8);sfx.clink();floaters.push({x:h.x,y:h.y-6,txt:'+'+v,t:40,col:'#ebe6d6'})}
-    for(const n of npcs)if(!p.hitSet.has(n)&&ov(b,n)){p.hitSet.add(n);hitNpc(n)}}
+    for(const n of npcs)if(!p.hitSet.has(n)&&ov(b,n)){p.hitSet.add(n);hitNpc(n)}
+    for(const c of cavs)if(!c.open&&!p.hitSet.has(c)&&ov(b,c)){p.hitSet.add(c);hitCav(c,'stab')}}
   // enemies
   for(const e of enemies){
     if(e.dead)continue;e.t++;if(e.flash>0)e.flash--;
+    if(e.type==='asb'&&e.fall){e.vy=Math.min(6,(e.vy||0)+GRAV);moveEnt(e);e.vx*=0.96;if(e.onGround){e.fall=false;e.vx=0;e.vy=0}}
     if(e.type==='asb'){if(e.t%45===0)parts.push({x:e.x+3+rnd()*8,y:e.y,vx:(rnd()-.5)*0.3,vy:-0.25,t:60,col:ASB[e.kind].pal.F,g:0,fibre:true})}
     else{e.vy=Math.min(6,e.vy+GRAV);if(moveEnt(e))e.vx*=-1;
       if(e.onGround){const fx=e.vx>0?e.x+e.w+1:e.x-1;if(!solidAt(fx,e.y+e.h+2))e.vx*=-1}
       if(e.y>H+40)e.dead=true}
     if(!e.dead&&p.vac>0&&e.type==='asb'){const dx=p.x+5-(e.x+7),dy=p.y+8-(e.y+5),d=Math.hypot(dx,dy)||1;
       if(d<VAC_R){e.suck=(e.suck||0)+1;const sp=Math.min(4.5,0.6+e.suck*0.09);e.x+=dx/d*sp;e.y+=dy/d*sp;if(d<10){kill(e,'vac');continue}}}
-    if(!e.dead&&ov(p,e)){if(p.mask>0||(p.vac>0&&e.type==='asb'))kill(e,'mask');else if(p.inv<=0)hurt(e)}
+    if(!e.dead&&ov(p,e)){if(p.mask>0||(p.vac>0&&e.type==='asb'))kill(e,'mask');else if(p.inv<=0&&!shed)hurt(e)}
   }
   enemies=enemies.filter(e=>!e.dead);
   // bystanders
@@ -717,6 +751,7 @@ function update(){
     if(s.life>0&&boss&&ov(s,boss)){damage(boss,2,'throw');s.life=0}
     if(s.life>0)for(const h of hazards)if(h.hittable&&!h.dead&&ov(s,h)){h.dead=true;s.life=0;addPts(50);burst(h.x+4,h.y+4,'#e9e4d6',8);break}
     if(s.life>0)for(const n of npcs)if(ov(s,n)){hitNpc(n);s.life=0;break}
+    if(s.life>0)for(const c of cavs)if(!c.open&&ov(s,c)){hitCav(c,'throw');s.life=0;break}
     if(s.life>0&&solids.some(o=>!o.oneway&&ov(s,o))){s.life=0;sfx.clink();burst(s.x+5,s.y,'#c8d0da',6)}}
   shots=shots.filter(s=>s.life>0);enemies=enemies.filter(e=>!e.dead);
   // world hazards
@@ -753,8 +788,9 @@ function update(){
   if(arena&&!arena.locked&&p.x>arena.x+20)startBoss();
   if(boss)updateBoss();
   // bonus shed timer
-  if(shed){shed.t--;const left=enemies.filter(e=>e.type==='asb').length;
-    if(left===0||shed.t<=0){shed.smashed=shed.total-left;shed.all=left===0?addPts(2000):0;shed.lab=role==='labtech'&&left===0?Math.round((score-siteStartScore)*0.10):0;score+=shed.lab;sfx.clear();saveHi();state='sheddone';autoPost();return}}
+  for(const c of cavs)if(c.shake>0)c.shake--;
+  if(shed){shed.t--;p.hp=Math.max(p.hp,shed.lives);const left=enemies.filter(e=>e.type==='asb').length,hidden=cavs.reduce((a,c)=>a+c.kinds.length,0),allOpen=cavs.every(c=>c.open);
+    if((left===0&&allOpen)||shed.t<=0){shed.smashed=shed.total-left-hidden;const everything=left+hidden===0&&allOpen;shed.all=everything?addPts(2000):0;shed.lab=role==='labtech'&&everything?Math.round((score-siteStartScore)*0.10):0;score+=shed.lab;sfx.clear();saveHi();state='sheddone';autoPost();return}}
   // goal
   if(!shed&&p.x+p.w>decon.x+30){
     const allFound=!enemies.some(e=>e.type==='asb');labBonus=role==='labtech'&&allFound?Math.round((score-siteStartScore)*0.10):0;score+=labBonus;
@@ -1043,7 +1079,7 @@ function hud(){
   const goal=decon.x+30,prog=shed?shed.t/SHED_FRAMES:Math.max(0,Math.min(1,p.x/goal));rect(0,16,W,2,'#1d2029');rect(0,16,Math.round(W*prog),2,'#ff7a1a');
   if(arena){const ax=Math.round(W*arena.x/goal);rect(ax,15,2,4,'#ff3b4f')}
   let by=22;const bar=(lbl,t,max,col)=>{rect(W/2-50,by,100,12,'rgba(8,9,14,0.7)');rect(W/2-48,by+8,Math.round(96*t/max),2,col);text(lbl+' '+(t/60).toFixed(1)+'s',W/2,by,col,6,'center');by+=14};
-  if(shed)bar('TIME',shed.t,SHED_FRAMES,'#ff7a1a');
+  if(shed)bar('BONUS TIME',shed.t,SHED_FRAMES,'#ff7a1a');
   if(p.mask>0)bar('SCUBA',p.mask,300,'#38e0ff');
   if(p.vac>0)bar('VACUUM',p.vac,VAC_FRAMES,'#f5c400');
   if(boss){rect(40,H-18,W-80,12,'rgba(8,9,14,0.8)');rect(42,H-9,W-84,3,'#3a1a20');rect(42,H-9,Math.round((W-84)*Math.max(0,boss.hp)/boss.max),3,WD.boss.filt);text(WD.boss.name,W/2,H-17,'#ebe6d6',6,'center')}
@@ -1093,6 +1129,7 @@ function draw(){
   const sx=shake>0?Math.round((rnd()-0.5)*Math.min(6,shake)):0,sy=shake>0?Math.round((rnd()-0.5)*Math.min(4,shake)):0;
   ctx.save();ctx.translate(-Math.round(camX)+sx,sy);
   for(const pr of props)if(pr.x>camX-60&&pr.x<camX+W+10)drawProp(pr);
+  for(const c of cavs)if(c.x>camX-60&&c.x<camX+W+10)drawCav(c);
   for(const s of solids){if(s.x>camX+W+40||s.x+s.w<camX-40)continue;if(s.kind==='ground')drawGround(s)}
   for(const s of solids){if(s.x>camX+W+60||s.x+s.w<camX-60)continue;if(s.kind==='plank')drawPlank(s);else if(s.kind==='barrier')drawBarrier(s);else if(s.kind!=='ground')drawBox(s)}
   if(!shed)drawDecon();
@@ -1111,7 +1148,7 @@ function draw(){
   hud();
   if(state==='pause')panel([['PAUSED','#f5c400',12],[touchMode?'TAP the screen to resume':'P or SPACE to resume','#9aa0ae',6],['N music  ·  M mute','#9aa0ae',6]],72);
   if(state==='clear')panel([['SITE CLEARED','#f5c400',12],...(perfectPrev?[['PERFECT! No asbestos missed, no lives lost','#f5c400',6],['Super Vacuum ready for the next site','#f5c400',6]]:[['Clearance certificate issued by SQN.','#ebe6d6',6]]),...(labBonus?[['LAB TECH: ALL ASBESTOS FOUND +'+labBonus,'#5bd17a',6]]:[]),['Bonus +'+clearBonus,'#38e0ff',8],['Score '+score,'#ebe6d6',8],[(touchMode?'TAP':'SPACE')+' for site '+(worldIdx()+1)+'-'+(stageN()+1),'#ff7a1a',6]],52);
-  if(state==='sheddone')panel([['SHED SMASHED','#f5c400',12],['Pieces smashed '+shed.smashed+' of '+shed.total,'#ebe6d6',8],...(shed.all?[['EVERY PIECE! +'+shed.all,'#f5c400',6]]:[]),...(shed.lab?[['LAB TECH: ALL ASBESTOS FOUND +'+shed.lab,'#5bd17a',6]]:[]),['Score '+score,'#ebe6d6',8],[(touchMode?'TAP':'SPACE')+' for world 3','#ff7a1a',6]],52);
+  if(state==='sheddone')panel([['BONUS ROUND OVER','#f5c400',12],['Free round: no lives lost','#9aa0ae',6],['Openings '+shed.opened+' of '+cavs.length+'   Asbestos '+shed.smashed+' of '+shed.total,'#ebe6d6',6],...(shed.all?[['EVERY PIECE! +'+shed.all,'#f5c400',6]]:[]),...(shed.lab?[['LAB TECH: ALL ASBESTOS FOUND +'+shed.lab,'#5bd17a',6]]:[]),['Score '+score,'#ebe6d6',8],[(touchMode?'TAP':'SPACE')+' for world 3','#ff7a1a',6]],52);
   if(state==='worldclear'){const nw=WORLDS[(worldIdx()+1)%5],looped=worldIdx()===4;
     panel([[looped?'ALL 5 WORLDS CLEARED':'WORLD CLEARED','#f5c400',looped?10:12],['Bonus +'+clearBonus+'   Score '+score,'#ebe6d6',6],...(labBonus?[['LAB TECH: ALL ASBESTOS FOUND +'+labBonus,'#5bd17a',6]]:[]),...(perfectPrev?[['PERFECT! Super Vacuum ready next site','#f5c400',6]]:[]),[looped?'The crews are back, and tougher':worldIdx()===1?'First, a bonus round:':'Next world:','#9aa0ae',6],[worldIdx()===1?'THE SMASH-IT-UP SHED':nw.name,'#38e0ff',8],[(touchMode?'TAP':'SPACE')+' to continue','#ff7a1a',6]],52)}
   if(state==='over'&&postForm.hidden)panel([[deathCause||'GAME OVER','#ff3b4f',deathCause?10:12],...(deathCause?[['Asbestos kills. Always wear your RPE.','#9aa0ae',6]]:[]),['Reached '+(worldIdx()+1)+'-'+stageN()+' '+WD.name,'#ebe6d6',6],['Score '+score+'   Best '+hi,'#ebe6d6',8],[(touchMode?'TAP':'SPACE')+' to try again','#ff7a1a',6]],60);
