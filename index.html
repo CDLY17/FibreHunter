@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>Fibre Hunter</title>
+<meta name="description" content="Fibre Hunter: a 16-bit asbestos-hunting platformer from SQN Consulting. Pick your role, smash the asbestos, top the team board.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Fibre Hunter by SQN">
+<meta property="og:description" content="A 16-bit asbestos-hunting platformer from SQN Consulting. Can you beat the team?">
+<meta property="og:url" content="https://cdly17.github.io/FibreHunter/">
+<meta property="og:image" content="https://cdly17.github.io/FibreHunter/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap">
@@ -114,6 +123,31 @@ ol.worlds b{color:var(--hazard);font-weight:normal}
 .blist .pts{font-family:var(--f-display);font-size:11px;color:var(--ink);font-variant-numeric:tabular-nums;text-align:right}
 .blist .pts small{display:block;font-family:var(--f-body);font-size:16px;color:var(--muted)}
 .empty{color:var(--muted);padding:6px 0}
+.btn.small{font-size:9px;padding:8px 10px}
+.bhead #shareBest{margin-left:auto}
+.week{margin:0 0 12px;padding:12px;border-radius:6px;background:var(--bezel);border:1px solid var(--line)}
+.week h3{font-family:var(--f-display);font-size:10px;letter-spacing:.08em;color:var(--hazard);margin:0 0 10px;text-transform:uppercase}
+.podium{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.podium li{background:var(--panel2);border-radius:4px;padding:8px;border-top:3px solid var(--medal);display:grid;justify-items:center;gap:4px;text-align:center;min-width:0}
+.podium li:nth-child(1){--medal:#f5c400}.podium li:nth-child(2){--medal:#c8d0da}.podium li:nth-child(3){--medal:#c98a4a}
+.podium .pl{font-family:var(--f-display);font-size:9px;color:var(--medal)}
+.podium img{width:24px;height:32px;image-rendering:pixelated}
+.podium .nm{font-family:var(--f-display);font-size:10px;color:var(--ink);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.podium .sc{font-family:var(--f-display);font-size:11px;color:var(--ink);font-variant-numeric:tabular-nums}
+.podium .tm{color:var(--muted);font-size:16px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.podium .none{grid-column:1/-1;color:var(--muted);border:0;background:none;padding:2px}
+.wk-note{margin:8px 0 0;color:var(--muted);font-size:16px}
+.share{position:fixed;inset:0;z-index:300;background:rgba(6,7,10,.75);display:flex;overflow:auto;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.share[hidden]{display:none!important}
+.sbox{margin:auto;width:min(720px,100%);background:var(--panel);border:2px solid var(--hazard);border-radius:6px;padding:16px;display:grid;gap:10px}
+.shead{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.shead h3{font-family:var(--f-display);font-size:13px;color:var(--hazard);margin:0}
+#shareImg{width:100%;height:auto;border-radius:4px;background:#253746;display:block}
+.sbox label{color:var(--muted);font-size:18px}
+#shareText{font-family:var(--f-body);font-size:19px;line-height:1.2;background:#0d0f14;color:var(--ink);border:2px solid var(--line);border-radius:4px;padding:10px;width:100%;box-sizing:border-box;resize:vertical}
+.snote{margin:0;color:var(--muted);font-size:17px}
+.snote a{color:var(--scuba)}
+.snote b{color:var(--ink);font-weight:normal}
 </style>
 
 </head>
@@ -141,6 +175,7 @@ ol.worlds b{color:var(--hazard);font-weight:normal}
           <div class="row">
             <button class="btn" type="submit" id="postBtn">Post score</button>
             <button class="btn ghost" type="button" id="skipBtn">Skip</button>
+            <button class="btn ghost" type="button" id="shareRun">Share score</button>
           </div>
           <p class="msg" id="postMsg" role="status"></p>
         </div>
@@ -166,11 +201,17 @@ ol.worlds b{color:var(--hazard);font-weight:normal}
     <div class="card board" id="board">
       <div class="bhead">
         <h2>Team scoreboard</h2>
+        <button class="btn ghost small" id="shareBest" type="button">Share my score</button>
         <div class="tabs" role="tablist">
           <button id="tabP" role="tab" aria-selected="true">Players</button>
           <button id="tabT" role="tab" aria-selected="false">Teams</button>
         </div>
       </div>
+      <section class="week" id="week" hidden aria-labelledby="weekTitle">
+        <h3 id="weekTitle">Top 3 this week</h3>
+        <ol class="podium" id="weekList"></ol>
+        <p class="wk-note" id="weekNote">Resets every Monday, NZ time.</p>
+      </section>
       <ol class="blist" id="boardList"></ol>
       <p class="note" id="boardNote">Connecting to the scoreboard…</p>
     </div>
@@ -212,6 +253,23 @@ ol.worlds b{color:var(--hazard);font-weight:normal}
     </div>
   </section>
 </main>
+
+<div class="share" id="share" hidden role="dialog" aria-modal="true" aria-labelledby="shareTitle">
+  <div class="sbox">
+    <div class="shead"><h3 id="shareTitle">Share my score</h3><button class="btn ghost small" id="shareClose" type="button">Close</button></div>
+    <img id="shareImg" alt="Your Fibre Hunter score card" width="1200" height="627">
+    <label for="shareText">Suggested post</label>
+    <textarea id="shareText" rows="6" spellcheck="false"></textarea>
+    <div class="row">
+      <button class="btn" id="shareNative" type="button" hidden>Share…</button>
+      <button class="btn" id="shareLinkedIn" type="button">Post on LinkedIn</button>
+      <button class="btn ghost" id="shareDownload" type="button">Download image</button>
+      <button class="btn ghost" id="shareCopy" type="button">Copy text</button>
+    </div>
+    <p class="msg" id="shareMsg" role="status"></p>
+    <p class="snote">For LinkedIn: <b>Post on LinkedIn</b> downloads your score card and copies the post text, then opens LinkedIn. Add the image to the post and paste. <a id="followSqn" href="https://nz.linkedin.com/company/sqn-consulting-new-zealand" target="_blank" rel="noopener">Follow SQN on LinkedIn</a></p>
+  </div>
+</div>
 
 <script>
 (()=>{
@@ -380,10 +438,10 @@ let state='title',level=1,score=0,hi=+LS.get('fibreHunterHi')||0,frameN=0;
 let solids=[],enemies=[],pickups=[],shots=[],parts=[],floaters=[],hazards=[],npcs=[];
 let decon,levelLen=0,worldEnd=0,camX=0,clearBonus=0,flash=0,shake=0,arena=null,boss=null,banner=null,windT=0,spawn={drop:200,debris:240,ammo:400},bossMaskGiven=false;
 let WD=WORLDS[0];
-let lifeGained=false,shed=null,cavs=[],props=[],siteStartScore=0,labBonus=0;
+let darkT=0,lifeGained=false,shed=null,cavs=[],props=[],siteStartScore=0,labBonus=0;
 const SHED_FRAMES=1800,SHED_WD={key:'shed',name:'BONUS SHED',kinds:[],asb:1,npcs:null,music:{mode:'major',bpm:168},boss:{name:'',suit:'#ffffff',filt:'#ffffff'}};
 let mult=1,cheatUsed=false,cheatBuf='',cheatTaps=[],lostLife=false,perfectPrev=false,mesoAt=-1,mesoT=0,lvlFrames=0,deathCause='';
-const BASE_LIVES=4,MAX_LIVES=5,MAX_AMMO=10,VAC_FRAMES=600,VAC_R=120,MESO_CHANCE=0.07;
+const MASK_BONUS=72,BASE_LIVES=4,MAX_LIVES=5,MAX_AMMO=10,VAC_FRAMES=600,VAC_R=120,MESO_CHANCE=0.07;
 function addPts(n){const v=Math.round(n*mult);score+=v;return v}
 const xTag=()=>mult>1?' x'+mult:'';
 const worldIdx=()=>Math.floor((level-1)/3)%5,stageN=()=>(level-1)%3+1,loopN=()=>Math.floor((level-1)/15);
@@ -419,7 +477,7 @@ function genLevel(){
   for(const f of mF)placeFloating('mask',len*f);
   Object.assign(p,{x:40,y:GY-16,vx:0,vy:0,inv:60,mask:0,vac:0,ammo:0,attackT:0,safe:{x:40,y:GY-16}});
   mult=1;cheatUsed=false;lostLife=false;lvlFrames=0;shed=null;cavs=[];siteStartScore=score;labBonus=0;props=[{kind:'sqnsign',x:150}];mesoT=0;mesoAt=rnd()<MESO_CHANCE?RIr(1200,3600):-1;
-  camX=0;windT=0;spawn={drop:220,debris:260,ammo:400};
+  camX=0;windT=0;darkT=0;spawn={drop:220,debris:260,ammo:400};
   banner={t:160,big:(worldIdx()+1)+'-'+st+'  '+WD.name,small:bossLvl?'Boss at the end of this site':(st===1&&lp>0?'Loop '+(lp+1)+': tougher crews':'Clear the site, reach the decon unit')};
   if(perfectPrev){p.vac=VAC_FRAMES;perfectPrev=false;banner.small='Perfect last site: you start with a SUPER VACUUM';setTimeout(()=>sfx.vac(),300)}
   playSong('lvl'+level,1000+level*31,WD.music.mode,WD.music.bpm+lp*4,false);
@@ -549,7 +607,7 @@ function press(a){
 }
 function release(a){if(a==='jump'||a==='left'||a==='right')keys[a]=false}
 addEventListener('keydown',e=>{
-  if(!postForm.hidden)return;
+  if(!postForm.hidden||!document.getElementById('share').hidden)return;
   const t=e.target;if(t&&t!==cv&&t.closest&&t.closest('input,textarea,select,button'))return;
   if(state==='play'&&e.key&&e.key.length===1){cheatBuf=(cheatBuf+e.key.toUpperCase()).slice(-6);if(cheatBuf==='CHISEL'){cheatBuf='';activateCheat()}}
   const a=MAP[e.code];if(!a)return;e.preventDefault();
@@ -623,7 +681,7 @@ function damage(e,d,src){
 }
 function kill(e,src){
   e.dead=true;sfx.kill();
-  if(e.type==='asb'){const a=ASB[e.kind],sm=role==='surveyor'&&p.mask>0?2:1;const v=addPts(a.pts*sm);floaters.push({x:e.x,y:e.y-6,txt:'+'+v+' '+a.name+(sm>1?' MASK x2':'')+xTag(),t:70,col:a.pal.L});burst(e.x+7,e.y+5,a.pal.L,14);burst(e.x+7,e.y+5,a.pal.G,8);
+  if(e.type==='asb'){const a=ASB[e.kind],sm=role==='surveyor'&&p.mask>0?2:1;const v=addPts(a.pts*sm);const mb=p.mask>0;if(mb)p.mask+=MASK_BONUS;floaters.push({x:e.x,y:e.y-6,txt:'+'+v+' '+a.name+(sm>1?' MASK x2':'')+xTag()+(mb?' +1.2s':''),t:70,col:a.pal.L});burst(e.x+7,e.y+5,a.pal.L,14);burst(e.x+7,e.y+5,a.pal.G,8);
     if(rnd()<0.08)addPick('chisel',e.x,e.y-6,false)}
   else{const v=addPts(e.angry?Math.round(250*1.05):250);floaters.push({x:e.x-6,y:e.y-6,txt:'+'+v+xTag(),t:60,col:'#ff4fa0'});burst(e.x+7,e.y+10,'#e9edf2',16);burst(e.x+7,e.y+8,'#ff4fa0',8);
     const r=rnd();if(r<0.3)addPick('chisel',e.x,e.y,false);else if(r<0.38)addPick('mask',e.x,e.y,false);else if(r<0.46)addPick('medkit',e.x,e.y,false)}
@@ -640,7 +698,7 @@ function hurt(from){
   if(p.hp<=0)gameOver();
 }
 function saveHi(){if(score>hi){hi=score;LS.set('fibreHunterHi',hi)}}
-function gameOver(){state='over';sfx.over();saveHi();playSong('title',7,'major',120,false);openPost(deathCause||'GAME OVER')}
+function gameOver(){lastRun={score:Math.floor(score),code:ROLES[role].code,reached:reachedBase(),world:WD.name,tag:cleanTag(LS.get('fhTag')||''),team:cleanTeam(LS.get('fhTeam')||'')};LS.set('fhLastRun',JSON.stringify(lastRun));state='over';sfx.over();saveHi();playSong('title',7,'major',120,false);openPost(deathCause||'GAME OVER')}
 
 /* ================= boss ================= */
 function startBoss(){
@@ -653,7 +711,7 @@ function startBoss(){
   playSong('boss'+level,777+worldIdx()*13+loopN(),'minor',150+worldIdx()*3,true);
   spawn.ammo=240;
 }
-function bossDown(){
+function bossDown(){darkT=0;
   const b=boss;boss=null;arena.done=true;
   solids=solids.filter(s=>s.id!=='R');
   const pts=addPts(2500*(worldIdx()+1)*(loopN()+1));
@@ -683,13 +741,24 @@ function updateBoss(){
       if(b.t>(rage?80:66)){b.state='walk';b.t=0}break;
     case 'charge':if(b.t<34){b.vx=0;b.lockFace=b.face;if(b.t%6<3)b.flash=2}else{b.vx=b.lockFace*(3.6+(rage?0.8:0))}break;
     case 'stunned':b.vx=0;if(b.t>55){b.state='walk';b.t=0}break;
+    case 'special':{const w=worldIdx();b.vx=0;
+      if(b.t===1){floaters.push({x:b.x-28,y:b.y-14,txt:SPECIAL_NAMES[w],t:80,col:'#ff5a6a'});sfx.roar();shake=8}
+      if(w===0){if([24,58,rage?92:-1].includes(b.t)){hazards.push({kind:'bale',x:b.face>0?b.x+b.w:b.x-14,y:GY-14,w:14,h:14,vx:b.face*(2.3+(rage?0.6:0)),vy:0,life:400,rot:0});sfx.boom()}if(b.t>(rage?125:95)){b.state='walk';b.t=0}}
+      else if(w===1){const dir=p.x+p.w/2<b.x+b.w/2?-1:1;if(b.t>20&&b.t<150){p.vx+=dir*0.13;if(frameN%2===0)parts.push({x:dir>0?b.x+b.w:b.x,y:30+rnd()*150,vx:dir*(5+rnd()*3),vy:0,t:60,col:'rgba(230,240,255,0.7)',g:0,streak:true});
+          if(b.t%24===0)hazards.push({kind:'debris',x:b.x+b.w/2,y:GY-12-rnd()*40,w:12,h:5,vx:dir*3.3,vy:0,life:300,hittable:true,rot:0})}
+        if(b.t>160){b.state='walk';b.t=0}}
+      else if(w===2){if(b.t===1)darkT=260;if(b.t>50){b.state='charge';b.t=0}}
+      else if(w===3){if(b.t===26||(rage&&b.t===62)){const sx=Math.sign(p.x-b.x)||1;for(let i=-2;i<=2;i++)hazards.push({kind:'chalk',x:b.x+b.w/2,y:b.y+6,w:6,h:4,vx:sx*(2.1+Math.abs(i)*0.35),vy:-3.4+i*0.85,grav:0.14,life:240,hittable:true,rot:0});sfx.throw()}if(b.t>(rage?92:62)){b.state='walk';b.t=0}}
+      else{if(b.t%13===0&&b.t<=(rage?104:78))spawnDrop(arena.x+20+rnd()*(W-40));if(b.t%4===0)parts.push({x:arena.x+rnd()*W,y:20,vx:(rnd()-.5)*0.4,vy:0.8,t:80,col:'rgba(240,235,220,0.6)',g:0,fibre:true});if(b.t>(rage?130:104)){b.state='walk';b.t=0}}
+      break}
   }
   const hit=moveEnt(b);
   if(b.state==='charge'&&b.t>=34&&hit){b.state='stunned';b.t=0;shake=14;sfx.boom();for(let i=0;i<3;i++)spawnDrop(arena.x+30+rnd()*(W-60))}
   if(ov(p,b)){if(p.mask>0)damage(b,1,'mask');else if(p.inv<=0)hurt(b)}
   if(!bossMaskGiven&&rage){bossMaskGiven=true;addPick('mask',arena.x+W/2-6,GY-50)}
 }
-function nextBossMove(){const b=boss;b.t=0;const r=rnd();b.state=r<0.34?'stomp':r<0.67?'throw':'charge'}
+const SPECIAL_NAMES=['HAY BALE ROLL!','SOUTHERLY BLAST!','LIGHTS OUT!','CHALK BARRAGE!','FIBRE STORM!'];
+function nextBossMove(){const b=boss;b.t=0;const r=rnd(),sp=b.hp<b.max/2?0.38:0.26;b.state=r<sp?'special':r<sp+(1-sp)/3?'stomp':r<sp+2*(1-sp)/3?'throw':'charge'}
 function spawnDrop(x){hazards.push({kind:'drop',x,y:22,w:12,h:9,vx:0,vy:0,warn:50,grav:0.22,life:400,hittable:true,ak:asbKind()})}
 
 /* ================= update ================= */
@@ -766,6 +835,8 @@ function update(){
       if(d<VAC_R){h.suck=(h.suck||0)+1;const sp=Math.min(5,1+h.suck*0.12);h.x+=dx/d*sp;h.y+=dy/d*sp;
         if(d<12||ov(p,h)){h.dead=true;const v=addPts(50);burst(p.x+5,p.y+8,'#e9e4d6',6);floaters.push({x:p.x-4,y:p.y-10,txt:'+'+v,t:40,col:'#ebe6d6'})}continue}}
     if(h.grav)h.vy=Math.min(6,h.vy+h.grav);h.x+=h.vx;h.y+=h.vy;if(h.rot!==undefined)h.rot+=0.25;
+    if(h.kind==='bale'&&solids.some(o=>!o.oneway&&o.kind!=='ground'&&ov(h,o))){h.dead=true;burst(h.x+7,h.y+7,'#e8d27a',12)}
+    if(h.kind==='chalk'&&solids.some(o=>!o.oneway&&ov(h,o))){h.dead=true;burst(h.x+3,h.y+2,'#ffffff',6)}
     if(h.kind==='shock'){if(solids.some(o=>!o.oneway&&o.kind!=='ground'&&ov(h,o)))h.dead=true;if(frameN%3===0)parts.push({x:h.x+rnd()*10,y:GY-2,vx:0,vy:-1,t:14,col:'#cfc6ae',g:0.05})}
     if(h.kind==='rock'||h.kind==='drop'){for(const o of solids)if(!o.oneway&&ov(h,o)){h.dead=true;
         if(h.kind==='drop'&&rnd()<0.5&&o.y>=40){enemies.push({type:'asb',kind:h.ak,x:h.x-1,y:o.y-10,w:14,h:10,hp:1,t:0,flash:0})}
@@ -788,6 +859,7 @@ function update(){
   // boss + arena
   if(arena&&!arena.locked&&p.x>arena.x+20)startBoss();
   if(boss)updateBoss();
+  if(darkT>0)darkT--;
   // bonus shed timer
   for(const c of cavs)if(c.shake>0)c.shake--;
   if(shed){shed.t--;p.hp=Math.max(p.hp,shed.lives);const left=enemies.filter(e=>e.type==='asb').length,hidden=cavs.reduce((a,c)=>a+c.kinds.length,0),allOpen=cavs.every(c=>c.open);
@@ -1059,6 +1131,8 @@ function drawHazard(h){
   if(h.kind==='shock'){for(let i=0;i<5;i++)rect(X+i*2,Y+8-((frameN+i*3)%6)-2,2,((frameN+i*3)%6)+2,i%2?'#cfc6ae':'#ffe0a0')}
   else if(h.kind==='drop'&&h.warn>0){if(frameN%10<6){text('!',X+3,20,'#f5c400',8);for(let yy=30;yy<GY;yy+=10)rect(X+5,yy,1,4,'rgba(245,196,0,0.35)')}rect(X,18,12,2,'#5a4a3a')}
   else if(h.kind==='drop'||h.kind==='rock'){const s=ASB[h.ak].spr;if(h.kind==='rock')ctx.drawImage(s,X-3,Y-2,12,9);else ctx.drawImage(s,X-1,Y)}
+  else if(h.kind==='bale'){ctx.save();ctx.translate(X+7,Y+7);ctx.rotate(h.rot*0.5*Math.sign(h.vx||1));disc(0,0,7,'#d9c06a');disc(0,0,5,'#e8d27a');rect(-7,-1,14,2,'#b89a45');rect(-1,-7,2,14,'#b89a45');disc(0,0,1,'#8a6f2a');ctx.restore()}
+  else if(h.kind==='chalk'){ctx.save();ctx.translate(X+3,Y+2);ctx.rotate(h.rot);rect(-3,-2,6,4,'#ffffff');rect(-3,-2,2,4,'#e33b3b');ctx.restore()}
   else if(h.kind==='debris'){ctx.save();ctx.translate(X+6,Y+2);ctx.rotate(h.rot);rect(-6,-2,12,4,'#cfcabb');for(let i=-6;i<6;i+=3)rect(i,-2,1,4,'#9e9887');ctx.restore()}
 }
 function drawBoss(){
@@ -1080,7 +1154,7 @@ function hud(){
   {const left=enemies.filter(e=>e.type==='asb').length;ctx.drawImage(ASB.chrysotile.spr,104,4,10,7);text(String(left),117,5,left?'#ebe6d6':'#5bd17a',6)}
   const goal=decon.x+30,prog=shed?shed.t/SHED_FRAMES:Math.max(0,Math.min(1,p.x/goal));rect(0,16,W,2,'#1d2029');rect(0,16,Math.round(W*prog),2,'#ff7a1a');
   if(arena){const ax=Math.round(W*arena.x/goal);rect(ax,15,2,4,'#ff3b4f')}
-  let by=22;const bar=(lbl,t,max,col)=>{rect(W/2-50,by,100,12,'rgba(8,9,14,0.7)');rect(W/2-48,by+8,Math.round(96*t/max),2,col);text(lbl+' '+(t/60).toFixed(1)+'s',W/2,by,col,6,'center');by+=14};
+  let by=22;const bar=(lbl,t,max,col)=>{rect(W/2-50,by,100,12,'rgba(8,9,14,0.7)');rect(W/2-48,by+8,Math.round(96*Math.min(1,t/max)),2,col);text(lbl+' '+(t/60).toFixed(1)+'s',W/2,by,col,6,'center');by+=14};
   if(shed)bar('BONUS TIME',shed.t,SHED_FRAMES,'#ff7a1a');
   if(p.mask>0)bar('SCUBA',p.mask,300,'#38e0ff');
   if(p.vac>0)bar('VACUUM',p.vac,VAC_FRAMES,'#f5c400');
@@ -1145,6 +1219,10 @@ function draw(){
   for(const q of parts){ctx.globalAlpha=Math.min(1,q.t/20);if(q.streak)rect(q.x,q.y,8,1,q.col);else rect(q.x,q.y,q.fibre?1:2,2,q.col)}ctx.globalAlpha=1;
   for(const f of floaters)text(f.txt,f.x,f.y,f.col,6);
   ctx.restore();
+  if(darkT>0){const al=0.93*Math.min(1,(260-darkT)/12,darkT/24),px=p.x+5-camX,py=p.y+8;
+    ctx.save();ctx.fillStyle='rgba(4,5,9,'+al+')';ctx.beginPath();ctx.rect(0,0,W,H);ctx.arc(px,py,36,0,Math.PI*2);ctx.fill('evenodd');ctx.restore();
+    if(boss){const bx=boss.x-camX,by=boss.y;rect(bx+9,by+8,3,2,'#7df9ff');rect(bx+19,by+8,3,2,'#7df9ff')}
+    if(frameN%40<26)text('LIGHTS OUT',W/2,40,'#7df9ff',6,'center')}
   if(flash>0){ctx.globalAlpha=flash/12;rect(0,0,W,H,'#ffffff');ctx.globalAlpha=1}
   if(mesoT){ctx.globalAlpha=Math.min(0.5,mesoT/500);rect(0,0,W,H,'#14161c');ctx.globalAlpha=1}
   hud();
@@ -1172,7 +1250,7 @@ async function sbLoad(){
   board.docs=(Array.isArray(rows)?rows:[]).map(v=>({id:String(v.id),tag:v.tag,team:v.team,best:+v.best||0,reached:typeof v.reached==='string'?v.reached.slice(0,6):'',runs:+v.runs||0}));
   board.status='ready';renderBoard();
 }
-async function refreshBoard(){if(!SB)return;try{await sbLoad()}catch(e){if(board.status!=='ready'){board.status='error';renderBoard()}}}
+async function refreshBoard(){if(!SB)return;loadWeek();try{await sbLoad()}catch(e){if(board.status!=='ready'){board.status='error';renderBoard()}}}
 function renderBoard(){
   const list=$('boardList'),note=$('boardNote');list.textContent='';
   if(board.status==='loading'){note.textContent='Connecting to the scoreboard…';return}
@@ -1204,6 +1282,101 @@ function setTab(t){board.tab=t;$('tabP').setAttribute('aria-selected',t==='playe
 $('tabP').onclick=()=>setTab('players');$('tabT').onclick=()=>setTab('teams');
 renderBoard();
 if(SB){refreshBoard();setInterval(()=>{if(!document.hidden)refreshBoard()},20000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshBoard()})}
+
+// share my score
+const SQN_LINKEDIN='https://nz.linkedin.com/company/sqn-consulting-new-zealand';
+const GAME_URL='https://cdly17.github.io/FibreHunter/';
+const gameUrl=()=>(/^https?:$/.test(location.protocol)&&!/^(localhost|127\.|0\.0\.0\.0)/.test(location.hostname))?location.origin+location.pathname:GAME_URL;
+let lastRun=null;try{lastRun=JSON.parse(LS.get('fhLastRun')||'null')}catch(e){}
+const ROLE_BY_CODE={L:'labtech',S:'surveyor',A:'assessor'};
+function bestRun(){
+  const me=board.docs.find(d=>d.id===pid);
+  if(me){const rp=String(me.reached||'1-1').split(' '),w=parseInt(rp[0],10)||1;return{score:me.best,code:rp[1]||'',reached:rp[0],world:(WORLDS[w-1]||WORLDS[0]).name,tag:cleanTag(me.tag),team:cleanTeam(me.team)}}
+  if(lastRun&&lastRun.score>=hi)return lastRun;
+  return hi?{score:hi,code:ROLES[role].code,reached:'',world:'',tag:cleanTag(LS.get('fhTag')||''),team:cleanTeam(LS.get('fhTeam')||'')}:null;
+}
+function fitFont(g,txt,px,maxW){let s=px;do{g.font=s+'px "Press Start 2P", monospace';if(g.measureText(txt).width<=maxW)break;s-=2}while(s>8);return s}
+async function makeCard(run){
+  try{await document.fonts.load('40px "Press Start 2P"')}catch(e){}
+  const c=document.createElement('canvas');c.width=1200;c.height=627;const g=c.getContext('2d');g.imageSmoothingEnabled=false;g.textBaseline='top';
+  g.fillStyle='#253746';g.fillRect(0,0,1200,627);
+  g.fillStyle='rgba(255,255,255,0.035)';for(let x=0;x<1200;x+=24)g.fillRect(x,0,1,517);for(let y=0;y<517;y+=24)g.fillRect(0,y,1200,1);
+  g.fillStyle='#f5c400';g.fillRect(0,0,1200,18);g.fillStyle='#111111';for(let x=-18;x<1200;x+=36){g.beginPath();g.moveTo(x,18);g.lineTo(x+18,0);g.lineTo(x+30,0);g.lineTo(x+12,18);g.closePath();g.fill()}
+  g.fillStyle='#1b2a36';g.fillRect(40,424,330,14);
+  const rk=ROLE_BY_CODE[run.code];g.drawImage(rk?PLR[rk].idle[1]:CLASSIC_HERO,112,200,168,224);
+  g.drawImage(ASB.crocidolite.spr,36,370,84,60);g.drawImage(ASB.amosite.spr,292,382,70,50);
+  const X=410,MW=740;let s;
+  s=fitFont(g,'FIBRE HUNTER',52,MW);g.fillStyle='#000000';g.fillText('FIBRE HUNTER',X+4,64);g.fillStyle='#f5c400';g.fillText('FIBRE HUNTER',X,60);
+  if(run.generic){
+    g.font='24px "Press Start 2P", monospace';g.fillStyle='#ebe6d6';g.fillText('A 16-BIT ASBESTOS HUNT',X,150);
+    g.fillStyle='#84bd41';fitFont(g,'LAB TECH · SURVEYOR · ASSESSOR',22,MW);g.fillText('LAB TECH · SURVEYOR · ASSESSOR',X,210);
+    g.fillStyle='#ebe6d6';fitFont(g,'5 WORLDS · 5 BOSSES · BONUS SHED',22,MW);g.fillText('5 WORLDS · 5 BOSSES · BONUS SHED',X,256);
+    g.fillStyle='#f5c400';fitFont(g,'CAN YOU BEAT THE TEAM?',30,MW);g.fillText('CAN YOU BEAT THE TEAM?',X,380);
+  } else {
+    g.font='20px "Press Start 2P", monospace';g.fillStyle='#9fb0bf';g.fillText('SCORE',X,146);
+    const sc=(run.score|0).toLocaleString('en-NZ');fitFont(g,sc,76,MW);g.fillStyle='#ffffff';g.fillText(sc,X,178);
+    const who=(run.tag||'PLAYER').toUpperCase()+' · '+(rk?ROLES[rk].name:'ORIGINAL HERO');fitFont(g,who,26,MW);g.fillStyle='#84bd41';g.fillText(who,X,290);
+    if(run.reached){const rr='REACHED '+run.reached+' '+(run.world||'');fitFont(g,rr,20,MW);g.fillStyle='#ebe6d6';g.fillText(rr,X,338)}
+    if(run.team){const tt='TEAM '+run.team.toUpperCase();fitFont(g,tt,18,MW);g.fillStyle='#9fb0bf';g.fillText(tt,X,376)}
+    fitFont(g,'CAN YOU BEAT IT?',26,MW);g.fillStyle='#f5c400';g.fillText('CAN YOU BEAT IT?',X,430);
+  }
+  g.fillStyle='#ffffff';g.fillRect(0,517,1200,110);g.fillStyle='#84bd41';g.fillRect(0,517,1200,6);
+  if(sqnPrep()){g.imageSmoothingEnabled=true;g.drawImage(sqnSrc,48,546,200,60);g.imageSmoothingEnabled=false}
+  const u='PLAY FREE: '+gameUrl().replace(/^https?:\/\//,'').replace(/\/$/,'');g.fillStyle='#253746';fitFont(g,u,18,880);g.fillText(u,290,552);
+  const li='FOLLOW SQN: LINKEDIN.COM/COMPANY/SQN-CONSULTING-NEW-ZEALAND';fitFont(g,li,14,880);g.fillStyle='#4a5c6b';g.fillText(li,290,590);
+  return c;
+}
+function shareText(run){
+  const rk=ROLE_BY_CODE[run.code],r=rk?ROLES[rk].name.toLowerCase():'';
+  return 'I just scored '+(run.score|0).toLocaleString('en-NZ')+' in Fibre Hunter, the asbestos-hunting game from SQN Consulting'+(r?', playing as '+(/^[aeiou]/.test(r)?'an ':'a ')+r:'')+(run.reached?' and reaching '+run.reached+' '+(run.world||'').toLowerCase().replace(/\b\w/g,m=>m.toUpperCase()):'')+'. Can you beat it?\n\nPlay free: '+gameUrl()+'\nFollow SQN Consulting: '+SQN_LINKEDIN+'\n\n#asbestos #FibreHunter #SQN';
+}
+const shareEl=$('share');let shareBlob=null,shareRunData=null;
+async function openShare(run){
+  if(!run){shareMsg('Finish a run first, then share your score.',true);return}
+  if(state==='play')state='pause';
+  shareRunData=run;shareBlob=null;$('shareMsg').textContent='Drawing your score card…';$('shareMsg').className='msg';
+  $('shareText').value=shareText(run);shareEl.hidden=false;
+  const c=await makeCard(run);$('shareImg').src=c.toDataURL('image/png');
+  shareBlob=await new Promise(r=>c.toBlob(r,'image/png'));$('shareMsg').textContent='';
+  let canFiles=false;try{canFiles=!!(navigator.canShare&&shareBlob&&navigator.canShare({files:[new File([shareBlob],'fibre-hunter-score.png',{type:'image/png'})]}))}catch(e){}
+  $('shareNative').hidden=!canFiles;setTimeout(()=>{try{$('shareClose').focus()}catch(e){}},30);
+}
+function shareMsg(t,err){$('shareMsg').textContent=t;$('shareMsg').className='msg'+(err?' err':'')}
+function closeShare(){shareEl.hidden=true;try{cv.focus({preventScroll:true})}catch(e){}}
+function downloadCard(){if(!shareBlob)return false;const a=document.createElement('a');a.href=URL.createObjectURL(shareBlob);a.download='fibre-hunter-score.png';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500);return true}
+async function copyShareText(){const t=$('shareText').value;try{await navigator.clipboard.writeText(t);return true}catch(e){try{$('shareText').select();return document.execCommand('copy')}catch(_){return false}}}
+$('shareBest').onclick=()=>openShare(bestRun());
+$('shareRun').onclick=()=>{const run=Object.assign({},lastRun||{});if(!lastRun)return;run.tag=cleanTag($('tagIn').value||run.tag||'');run.team=cleanTeam($('teamIn').value||run.team||'');postForm.hidden=true;openShare(run)};
+$('shareClose').onclick=closeShare;
+shareEl.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();closeShare()}});
+shareEl.addEventListener('click',e=>{if(e.target===shareEl)closeShare()});
+$('shareDownload').onclick=()=>{shareMsg(downloadCard()?'Image saved as fibre-hunter-score.png':'Still drawing the card. Try again in a moment.',!shareBlob)};
+$('shareCopy').onclick=async()=>{shareMsg(await copyShareText()?'Post text copied.':'Select the text above and copy it.',false)};
+$('shareLinkedIn').onclick=async()=>{
+  const copied=await copyShareText();const saved=downloadCard();
+  const w=window.open('https://www.linkedin.com/feed/?shareActive=true&text='+encodeURIComponent($('shareText').value),'_blank','noopener');
+  shareMsg((saved?'Score card downloaded. ':'')+(copied?'Post text copied. ':'')+(w?'In LinkedIn, add the image to your post.':'Your browser blocked the LinkedIn window: open linkedin.com and start a post.'),!w);
+};
+$('shareNative').onclick=async()=>{try{await navigator.share({files:[new File([shareBlob],'fibre-hunter-score.png',{type:'image/png'})],text:$('shareText').value,title:'Fibre Hunter'});shareMsg('Shared.',false)}catch(e){if(e&&e.name!=='AbortError')shareMsg("Couldn't open sharing. Use Download image instead.",true)}};
+
+// weekly top 3
+async function loadWeek(){
+  if(!SB)return;
+  try{const r=await fetch(SB.url+'/rest/v1/rpc/weekly_top',{method:'POST',headers:sbHeaders(),body:JSON.stringify({p_limit:3}),cache:'no-store'});
+    if(!r.ok)throw new Error('HTTP '+r.status);renderWeek(await r.json())}catch(e){$('week').hidden=true}
+}
+function renderWeek(rows){
+  const list=$('weekList');list.textContent='';$('week').hidden=false;
+  if(!Array.isArray(rows)||!rows.length){const li=document.createElement('li');li.className='none';li.textContent='No scores yet this week. Post one to take the top spot.';list.appendChild(li);return}
+  rows.slice(0,3).forEach((d,i)=>{const li=document.createElement('li');
+    const pl=document.createElement('span');pl.className='pl';pl.textContent=['1ST','2ND','3RD'][i];
+    const code=String(d.reached||'').split(' ')[1]||'',av=avatarSrc(code);
+    const nm=document.createElement('span');nm.className='nm';nm.textContent=cleanTag(d.tag)+(String(d.id)===board.uid?' (you)':'');
+    const sc=document.createElement('span');sc.className='sc';sc.textContent=(d.best|0).toLocaleString();
+    li.appendChild(pl);if(av){const im=document.createElement('img');im.src=av;im.alt='';im.width=24;im.height=32;li.appendChild(im)}li.append(nm,sc);
+    if(cleanTeam(d.team)){const tm=document.createElement('span');tm.className='tm';tm.textContent=cleanTeam(d.team);li.appendChild(tm)}
+    list.appendChild(li)});
+}
 
 // posting
 let postBusy=false;
