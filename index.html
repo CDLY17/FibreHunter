@@ -221,7 +221,7 @@ ol.worlds b{color:var(--hazard);font-weight:normal}
         <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>Walk the site</dd>
         <dt><kbd>Space</kbd></dt><dd>Jump (hold for higher)</dd>
         <dt><kbd>X</kbd></dt><dd>Stab with the chisel. With throwing chisels in stock, X throws one unless a target is in stabbing range.</dd>
-        <dt>Hold <kbd>X</kbd></dt><dd>Boss fights only: charge a super throw that does double damage. Release when the bar flashes.</dd>
+        <dt>Hold <kbd>Space</kbd></dt><dd>Boss fights only: keep holding after you jump to charge a super chisel throw that does double damage. Let go when the bar flashes. On a phone, hold JUMP.</dd>
         <dt><kbd>P</kbd></dt><dd>Pause</dd>
         <dt><kbd>N</kbd> <kbd>M</kbd></dt><dd>Music on/off · Mute everything</dd>
         <dt>Phone</dt><dd>Tap the game to go full screen. Left thumb slides on the arrow pad; right thumb on JUMP (hold for higher) and X.</dd>
@@ -249,7 +249,7 @@ ol.worlds b{color:var(--hazard);font-weight:normal}
         <dt><span class="sw" style="background:#9cc3e6"></span>Bystanders</dt><dd>Leave them alone. Hitting one costs 200.</dd>
         <dt><span class="sw" style="background:#38e0ff"></span>Scuba mask</dt><dd>5 seconds of immunity. Anything hostile you touch is destroyed.</dd>
         <dt><span class="sw" style="background:#ff3b4f"></span>Lives</dt><dd>Start with 4. A perfect site (no asbestos missed, no lives lost) earns an extra life, up to 5.</dd>
-        <dt><span class="sw" style="background:#ff7a1a"></span>Throwing chisel</dt><dd>+10 chisels. Carry up to 20, and you start each site with none.</dd>
+        <dt><span class="sw" style="background:#ff7a1a"></span>Throwing chisel</dt><dd>+5 chisels. Stockpile up to 20, and you start each site with none.</dd>
       </dl>
     </div>
   </section>
@@ -452,7 +452,7 @@ function levelSeed(){const base=4242+level*977,v=LEVEL_SEEDS[level-1],k=runVaria
 let darkT=0,lifeGained=false,shed=null,cavs=[],props=[],siteStartScore=0,labBonus=0;
 const SHED_FRAMES=1800,SHED_WD={key:'shed',name:'BONUS SHED',kinds:[],asb:1,npcs:null,music:{mode:'major',bpm:168},boss:{name:'',suit:'#ffffff',filt:'#ffffff'}};
 let mult=1,cheatUsed=false,cheatBuf='',cheatTaps=[],lostLife=false,perfectPrev=false,mesoAt=-1,mesoT=0,lvlFrames=0,deathCause='';
-const MASK_BONUS=72,BASE_LIVES=4,MAX_LIVES=5,MAX_AMMO=20,CHISEL_PICKUP=10,AMMO_BONUS_CAP=10,INV_HIT=135,INV_FALL=150,ANGRY_BONUS=1.25,VAC_FRAMES=600,VAC_R=120,MESO_CHANCE=0.07;
+const MASK_BONUS=72,BASE_LIVES=4,MAX_LIVES=5,MAX_AMMO=20,CHISEL_PICKUP=5,AMMO_BONUS_CAP=10,INV_HIT=135,INV_FALL=150,ANGRY_BONUS=1.25,VAC_FRAMES=600,VAC_R=120,MESO_CHANCE=0.07;
 function addPts(n){const v=Math.round(n*mult);score+=v;return v}
 const xTag=()=>mult>1?' x'+mult:'';
 const worldIdx=()=>Math.floor((level-1)/3)%5,stageN=()=>(level-1)%3+1,loopN=()=>Math.floor((level-1)/15);
@@ -613,10 +613,10 @@ function press(a){
   if(state==='select'){if(a==='jump'||a==='start'||a==='act')confirmRole();return}
   if(state==='clear'||state==='worldclear'||state==='sheddone'){if(a==='jump'||a==='start'){p.hp=Math.max(p.hp,BASE_LIVES);lifeGained=false;if(state==='worldclear'&&worldIdx()===1){genShed()}else{level++;genLevel()}state='play'}return}
   if(state==='pause'){if(a==='jump'||a==='start')state='play';return}
-  if(a==='jump'){keys.jump=true;p.jumpBuf=8}
+  if(a==='jump'){keys.jump=true;p.jumpBuf=8;if(canCharge())chargeT=1}
   if(a==='act'){keys.act=true;attack()}
 }
-function release(a){if(a==='jump'||a==='left'||a==='right')keys[a]=false;if(a==='act'){keys.act=false;if(chargeT>0&&canCharge()){if(chargeT>=CHARGE_MAX)superThrow();else throwChisel()}chargeT=0}}
+function release(a){if(a==='jump'||a==='left'||a==='right')keys[a]=false;if(a==='act')keys.act=false;if(a==='jump'){if(chargeT>=CHARGE_MAX&&canCharge())superThrow();chargeT=0}}
 addEventListener('keydown',e=>{
   if(!postForm.hidden||!document.getElementById('share').hidden)return;
   const t=e.target;if(t&&t!==cv&&t.closest&&t.closest('input,textarea,select,button'))return;
@@ -677,7 +677,6 @@ function attack(){
   const reach={x:p.face>0?p.x+p.w:p.x-20,y:p.y,w:20,h:p.h};
   const close=enemies.some(e=>ov(reach,e))||(boss&&ov(reach,boss))||hazards.some(h=>h.hittable&&ov(reach,h));
   if(p.ammo>0&&!close){
-    if(canCharge()){chargeT=1;return}
     throwChisel();
   } else {p.attackT=14;p.attackKind='stab';p.hitSet=new Set();sfx.stab()}
 }
@@ -721,7 +720,7 @@ function startBoss(){
   solids.push({x:arena.x-6,y:-40,w:6,h:GY+40,kind:'barrier',id:'L'});
   const hp=14+worldIdx()*5+loopN()*10;
   boss={type:'boss',x:arena.x+W-80,y:GY-40,w:28,h:40,vx:0,vy:0,hp,max:hp,state:'intro',t:0,face:-1,inv:0,flash:0,onGround:false,anim:0,lockFace:-1};
-  banner={t:150,big:'BOSS: '+WD.boss.name,small:'Hold X to charge a double-damage chisel throw',boss:true};
+  banner={t:150,big:'BOSS: '+WD.boss.name,small:'Hold SPACE to charge a double-damage chisel throw',boss:true};
   sfx.roar();shake=20;
   playSong('boss'+level,777+worldIdx()*13+loopN(),'minor',150+worldIdx()*3,true);
   spawn.ammo=240;
@@ -797,7 +796,7 @@ function update(){
   if(p.onGround&&p.inv<=0&&p.ground&&!p.ground.oneway&&solidAt(p.x-10,p.y+p.h+2)&&solidAt(p.x+p.w+10,p.y+p.h+2)&&!enemies.some(e=>Math.abs(e.x-p.x)<40&&Math.abs(e.y-p.y)<30))p.safe={x:p.x,y:p.y};
   p.anim+=Math.abs(p.vx)*0.12;
   if(p.attackT>0)p.attackT--;if(p.inv>0)p.inv--;
-  if(keys.act&&chargeT>0&&canCharge()){if(chargeT<CHARGE_MAX){chargeT++;if(chargeT%8===0)tone(260+chargeT*14,0.05,'square',0.03);if(chargeT===CHARGE_MAX)sfx.pick()}}else if(chargeT&&!canCharge())chargeT=0;
+  if(keys.jump&&chargeT>0&&canCharge()){if(chargeT<CHARGE_MAX){chargeT++;if(chargeT%8===0)tone(260+chargeT*14,0.05,'square',0.03);if(chargeT===CHARGE_MAX)sfx.pick()}}else if(chargeT&&!canCharge())chargeT=0;
   lvlFrames++;
   if(mesoAt>0&&lvlFrames>=mesoAt&&!mesoT){mesoT=1;p.mask=0;p.vac=0;keys.jump=false;banner={t:220,big:'DIAGNOSIS: MESOTHELIOMA',small:'Years of fibre exposure have caught up with you'};sfx.over();playSong('meso',4040,'minor',66,false)}
   if(mesoT){mesoT++;p.inv=9999;if(mesoT%50===0){sfx.cough();floaters.push({x:p.x-8,y:p.y-12,txt:'*cough*',t:40,col:'#c8cdd6'})}if(mesoT>=320){deathCause='MESOTHELIOMA';p.inv=0;gameOver();return}}
@@ -1106,7 +1105,7 @@ function drawMaskIcon(x,y){rect(x+1,y+3,10,7,'#1b1b24');rect(x+2,y+4,8,5,'#38e0f
 function drawPickup(k){
   const bob=k.float?Math.round(Math.sin(k.t/12)*2):0,x=Math.round(k.x),y=Math.round(k.y)+bob;
   ctx.globalAlpha=0.25+0.15*Math.sin(k.t/8);rect(x-2,y-2,16,16,k.type==='mask'?'#38e0ff':k.type==='medkit'?'#5bd17a':'#ff7a1a');ctx.globalAlpha=1;
-  if(k.type==='chisel'){ctx.save();ctx.translate(x+6,y+6);ctx.rotate(-0.6);drawChisel(-6,-1,1);ctx.restore();text('10',x+5,y+6,'#ffffff',6)}
+  if(k.type==='chisel'){ctx.save();ctx.translate(x+6,y+6);ctx.rotate(-0.6);drawChisel(-6,-1,1);ctx.restore();text('5',x+8,y+6,'#ffffff',6)}
   else if(k.type==='mask')drawMaskIcon(x,y+1);
   else{rect(x+1,y+3,10,8,'#2e9d55');rect(x+4,y+1,4,2,'#1f6e3b');rect(x+5,y+4,2,6,'#ffffff');rect(x+3,y+6,6,2,'#ffffff')}
 }
