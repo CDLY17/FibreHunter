@@ -674,8 +674,9 @@ bindBtn('tExit',exitImmersive);
 /* ================= combat ================= */
 function attack(){
   if(p.attackT>0||mesoT)return;
-  const reach={x:p.face>0?p.x+p.w:p.x-20,y:p.y,w:20,h:p.h};
-  const close=enemies.some(e=>ov(reach,e))||(boss&&ov(reach,boss))||hazards.some(h=>h.hittable&&ov(reach,h));
+  // Only stab when the chisel can actually connect: same box as the stab at full reach (see stabBox), slightly padded.
+  const reach={x:p.face>0?p.x+p.w:p.x-15,y:p.y+4,w:15,h:9};
+  const close=enemies.some(e=>ov(reach,e))||(boss&&ov(reach,boss))||hazards.some(h=>h.hittable&&ov(reach,h))||cavs.some(c=>!c.open&&ov(reach,c));
   if(p.ammo>0&&!close){
     if(canCharge()){chargeT=1;return}
     throwChisel();
