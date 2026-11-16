@@ -221,6 +221,7 @@ ol.worlds b{color:var(--hazard);font-weight:normal}
         <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>Walk the site</dd>
         <dt><kbd>Space</kbd></dt><dd>Jump (hold for higher)</dd>
         <dt><kbd>X</kbd></dt><dd>Stab with the chisel. With throwing chisels in stock, X throws one unless a target is in stabbing range.</dd>
+        <dt>Hold <kbd>X</kbd></dt><dd>Boss fights only: charge a super throw that does double damage. Release when the bar flashes.</dd>
         <dt><kbd>P</kbd></dt><dd>Pause</dd>
         <dt><kbd>N</kbd> <kbd>M</kbd></dt><dd>Music on/off · Mute everything</dd>
         <dt>Phone</dt><dd>Tap the game to go full screen. Left thumb slides on the arrow pad; right thumb on JUMP (hold for higher) and X.</dd>
@@ -438,7 +439,13 @@ let state='title',level=1,score=0,hi=+LS.get('fibreHunterHi')||0,frameN=0;
 let solids=[],enemies=[],pickups=[],shots=[],parts=[],floaters=[],hazards=[],npcs=[];
 let decon,levelLen=0,worldEnd=0,camX=0,clearBonus=0,flash=0,shake=0,arena=null,boss=null,banner=null,windT=0,spawn={drop:200,debris:240,ammo:400},bossMaskGiven=false;
 let WD=WORLDS[0];
-let runVariants=null;
+let runVariants=null,chargeT=0;
+const CHARGE_MAX=40;
+const canCharge=()=>!!(boss&&arena&&arena.locked&&!arena.done&&p.ammo>0&&!mesoT&&state==='play');
+function superThrow(){if(p.ammo<=0)return;p.ammo--;p.attackT=12;p.attackKind='throw';const sv=role==='surveyor';
+  shots.push({x:p.face>0?p.x+p.w:p.x-14,y:p.y+6,w:14,h:5,vx:p.face*(sv?7.2:6.2),vy:-0.2,g:sv?0.012:0.025,life:sv?200:150,rot:0,dmg:4,sup:true});
+  sfx.throw();tone(180,0.25,'sawtooth',0.06,900);shake=4}
+function drawCharge(){if(chargeT<=0)return;const X=Math.round(p.x)-3,Y=Math.round(p.y)-7,full=chargeT>=CHARGE_MAX;rect(X,Y,16,3,'#1b1b24');rect(X+1,Y+1,Math.round(14*chargeT/CHARGE_MAX),1,full?(frameN%6<3?'#ffffff':'#ff7a1a'):'#ff7a1a');if(full){ctx.globalAlpha=0.35;rect(p.face>0?p.x+8:p.x-10,p.y+5,12,8,'#ffb000');ctx.globalAlpha=1}}
 // Alternative layouts per site. Each one carries exactly the same collectable points as the original layout.
 const LEVEL_SEEDS=[[68571,147761,2507623,3307442],[813934,3245067,10918578,21625066],[775316,7498547,7720279,8860615],[158611,214044,427857,1718654],[7643043,12679527,15071065,15522448],[223917,263512,1490957,1768122],[327841,1436501,1610719,2030426],[1730481,2752032,4042829,6252230],[694069,939558,994991,1256318],[402043,1090996,1534460,1843301],[5447423,6104700,9383166,9399004],[380240,776190,1425548,2312476],[72376,135728,4831695,5449377],[1672991,1823452,2480729,2559919],[208953,6805480,8294252,9727591],[154497,194092,257444,740503],[472234,519748,1343324,1668003],[647429,1043379,2041173,2650936],[276213,656325,1693714,2216368],[1686772,1781800,8592140,8988090],[3081493,3493281,3635823,3651661],[136602,176197,603823,1427399],[5886773,9014778,13069306,24092554],[162313,273179,1088836,1484786],[5880808,11344918,20111251,21702970],[7489342,13214779,20262689],[323624,561194,830440,1582745],[300844,2296432,3531796,3610986],[2606250,10137219,11055823,19584586],[389907,587882,627477,706667]];
 function levelSeed(){const base=4242+level*977,v=LEVEL_SEEDS[level-1],k=runVariants?runVariants[(level-1)%runVariants.length]:0;return v&&k?v[(k-1)%v.length]:base}
@@ -607,9 +614,9 @@ function press(a){
   if(state==='clear'||state==='worldclear'||state==='sheddone'){if(a==='jump'||a==='start'){p.hp=Math.max(p.hp,BASE_LIVES);lifeGained=false;if(state==='worldclear'&&worldIdx()===1){genShed()}else{level++;genLevel()}state='play'}return}
   if(state==='pause'){if(a==='jump'||a==='start')state='play';return}
   if(a==='jump'){keys.jump=true;p.jumpBuf=8}
-  if(a==='act')attack();
+  if(a==='act'){keys.act=true;attack()}
 }
-function release(a){if(a==='jump'||a==='left'||a==='right')keys[a]=false}
+function release(a){if(a==='jump'||a==='left'||a==='right')keys[a]=false;if(a==='act'){keys.act=false;if(chargeT>0&&canCharge()){if(chargeT>=CHARGE_MAX)superThrow();else throwChisel()}chargeT=0}}
 addEventListener('keydown',e=>{
   if(!postForm.hidden||!document.getElementById('share').hidden)return;
   const t=e.target;if(t&&t!==cv&&t.closest&&t.closest('input,textarea,select,button'))return;
@@ -660,7 +667,7 @@ function bindBtn(id,down,up){const b=document.getElementById(id);
   ['pointerup','pointercancel','lostpointercapture'].forEach(t=>b.addEventListener(t,u));
   b.addEventListener('contextmenu',e=>e.preventDefault())}
 bindBtn('tJump',()=>press('jump'),()=>release('jump'));
-bindBtn('tAct',()=>press('act'));
+bindBtn('tAct',()=>press('act'),()=>release('act'));
 bindBtn('tPause',()=>press('pause'));
 bindBtn('tExit',exitImmersive);
 
@@ -670,9 +677,13 @@ function attack(){
   const reach={x:p.face>0?p.x+p.w:p.x-20,y:p.y,w:20,h:p.h};
   const close=enemies.some(e=>ov(reach,e))||(boss&&ov(reach,boss))||hazards.some(h=>h.hittable&&ov(reach,h));
   if(p.ammo>0&&!close){
+    if(canCharge()){chargeT=1;return}
+    throwChisel();
+  } else {p.attackT=14;p.attackKind='stab';p.hitSet=new Set();sfx.stab()}
+}
+function throwChisel(){if(p.ammo<=0)return;
     p.ammo--;p.attackT=12;p.attackKind='throw';sfx.throw();
     const sv=role==='surveyor';shots.push({x:p.face>0?p.x+p.w:p.x-10,y:p.y+7,w:10,h:3,vx:p.face*(sv?6:4.6),vy:sv?-0.3:-0.4,g:sv?0.022:0.05,life:sv?170:100,rot:0});
-  } else {p.attackT=14;p.attackKind='stab';p.hitSet=new Set();sfx.stab()}
 }
 function stabBox(){const ext=p.attackT>10?6:p.attackT>4?14:8;return{x:p.face>0?p.x+p.w:p.x-ext,y:p.y+6,w:ext,h:5}}
 function damage(e,d,src){
@@ -710,12 +721,12 @@ function startBoss(){
   solids.push({x:arena.x-6,y:-40,w:6,h:GY+40,kind:'barrier',id:'L'});
   const hp=14+worldIdx()*5+loopN()*10;
   boss={type:'boss',x:arena.x+W-80,y:GY-40,w:28,h:40,vx:0,vy:0,hp,max:hp,state:'intro',t:0,face:-1,inv:0,flash:0,onGround:false,anim:0,lockFace:-1};
-  banner={t:150,big:'BOSS: '+WD.boss.name,small:'Two stabs, a thrown chisel, or a scuba mask',boss:true};
+  banner={t:150,big:'BOSS: '+WD.boss.name,small:'Hold X to charge a double-damage chisel throw',boss:true};
   sfx.roar();shake=20;
   playSong('boss'+level,777+worldIdx()*13+loopN(),'minor',150+worldIdx()*3,true);
   spawn.ammo=240;
 }
-function bossDown(){darkT=0;
+function bossDown(){darkT=0;chargeT=0;
   const b=boss;boss=null;arena.done=true;
   solids=solids.filter(s=>s.id!=='R');
   const pts=addPts(2500*(worldIdx()+1)*(loopN()+1));
@@ -786,6 +797,7 @@ function update(){
   if(p.onGround&&p.inv<=0&&p.ground&&!p.ground.oneway&&solidAt(p.x-10,p.y+p.h+2)&&solidAt(p.x+p.w+10,p.y+p.h+2)&&!enemies.some(e=>Math.abs(e.x-p.x)<40&&Math.abs(e.y-p.y)<30))p.safe={x:p.x,y:p.y};
   p.anim+=Math.abs(p.vx)*0.12;
   if(p.attackT>0)p.attackT--;if(p.inv>0)p.inv--;
+  if(keys.act&&chargeT>0&&canCharge()){if(chargeT<CHARGE_MAX){chargeT++;if(chargeT%8===0)tone(260+chargeT*14,0.05,'square',0.03);if(chargeT===CHARGE_MAX)sfx.pick()}}else if(chargeT&&!canCharge())chargeT=0;
   lvlFrames++;
   if(mesoAt>0&&lvlFrames>=mesoAt&&!mesoT){mesoT=1;p.mask=0;p.vac=0;keys.jump=false;banner={t:220,big:'DIAGNOSIS: MESOTHELIOMA',small:'Years of fibre exposure have caught up with you'};sfx.over();playSong('meso',4040,'minor',66,false)}
   if(mesoT){mesoT++;p.inv=9999;if(mesoT%50===0){sfx.cough();floaters.push({x:p.x-8,y:p.y-12,txt:'*cough*',t:40,col:'#c8cdd6'})}if(mesoT>=320){deathCause='MESOTHELIOMA';p.inv=0;gameOver();return}}
@@ -821,8 +833,9 @@ function update(){
   npcs=npcs.filter(n=>!n.gone);
   // shots
   for(const s of shots){s.vy+=s.g;s.x+=s.vx;s.y+=s.vy;s.rot+=0.5;s.life--;
-    for(const e of enemies)if(!e.dead&&ov(s,e)){damage(e,2,'throw');s.life=0;break}
-    if(s.life>0&&boss&&ov(s,boss)){damage(boss,2,'throw');s.life=0}
+    for(const e of enemies)if(!e.dead&&ov(s,e)){damage(e,s.dmg||2,'throw');s.life=0;break}
+    if(s.sup&&frameN%2===0)parts.push({x:s.x+7,y:s.y+2,vx:-s.vx*0.1,vy:(rnd()-.5)*0.4,t:16,col:['#ffb000','#ff7a1a','#ffffff'][frameN%3],g:0});
+    if(s.life>0&&boss&&ov(s,boss)){damage(boss,s.dmg||2,'throw');if(s.sup){burst(s.x+7,s.y,'#ffb000',14);floaters.push({x:boss.x-4,y:boss.y-12,txt:'SUPER HIT!',t:50,col:'#ffb000'})}s.life=0}
     if(s.life>0)for(const h of hazards)if(h.hittable&&!h.dead&&ov(s,h)){h.dead=true;s.life=0;addPts(50);burst(h.x+4,h.y+4,'#e9e4d6',8);break}
     if(s.life>0)for(const n of npcs)if(ov(s,n)){hitNpc(n);s.life=0;break}
     if(s.life>0)for(const c of cavs)if(!c.open&&ov(s,c)){hitCav(c,'throw');s.life=0;break}
@@ -1218,8 +1231,8 @@ function draw(){
   for(const e of enemies)if(e.x>camX-20&&e.x<camX+W+20)drawEnemy(e);
   if(boss)drawBoss();
   for(const h of hazards)drawHazard(h);
-  for(const s of shots){ctx.save();ctx.translate(Math.round(s.x+5),Math.round(s.y+1));ctx.rotate(s.rot*Math.sign(s.vx));drawChisel(-6,-1,1);ctx.restore()}
-  drawPlayer();
+  for(const s of shots){ctx.save();ctx.translate(Math.round(s.x+5),Math.round(s.y+1));if(s.sup){ctx.globalAlpha=0.45;rect(-8,-5,18,10,'#ffb000');ctx.globalAlpha=1;ctx.scale(1.6,1.6)}ctx.rotate(s.rot*Math.sign(s.vx));drawChisel(-6,-1,1);ctx.restore()}
+  drawPlayer();drawCharge();
   for(const q of parts){ctx.globalAlpha=Math.min(1,q.t/20);if(q.streak)rect(q.x,q.y,8,1,q.col);else rect(q.x,q.y,q.fibre?1:2,2,q.col)}ctx.globalAlpha=1;
   for(const f of floaters)text(f.txt,f.x,f.y,f.col,6);
   ctx.restore();
