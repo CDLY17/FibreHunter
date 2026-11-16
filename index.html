@@ -98,6 +98,7 @@ html.immersive,html.immersive body{overflow:hidden;overscroll-behavior:none;heig
 .asub{margin:0;color:var(--muted);font-size:17px}
 .aq{margin:0;font-size:22px;line-height:1.15;color:var(--ink)}
 .aopts{display:grid;gap:6px}
+.aopts button.skip{font-size:16px;color:var(--muted,#9aa0ae);justify-content:center;border-style:dashed}
 .aopts button{font-family:var(--f-body);font-size:21px;text-align:left;padding:8px 12px;border-radius:4px;border:2px solid var(--line);background:#0d0f14;color:var(--ink);cursor:pointer;display:flex;gap:10px;align-items:baseline}
 .aopts button b{font-family:var(--f-display);font-size:11px;font-weight:normal;color:var(--hazard)}
 .aopts button:hover,.aopts button:focus-visible{border-color:var(--hazard);outline:none}
@@ -207,7 +208,7 @@ ol.worlds b{color:var(--hazard);font-weight:normal}
       </form>
       <div class="audit" id="audit" hidden role="dialog" aria-modal="true" aria-labelledby="auditTitle">
         <div class="abox">
-          <div class="ahead"><img id="auditImg" alt="" width="36" height="48"><div><h3 id="auditTitle">SITE AUDIT</h3><p class="asub">The SQN auditor has a question. Answer to keep working.</p></div></div>
+          <div class="ahead"><img id="auditImg" alt="" width="36" height="48"><div><h3 id="auditTitle">SITE AUDIT</h3><p class="asub" id="auditSub">The SQN auditor has a question. Answer to keep working.</p></div></div>
           <p class="aq" id="auditQ"></p>
           <div class="aopts" id="auditOpts"></div>
           <p class="amsg" id="auditMsg" role="status"></p>
@@ -281,7 +282,7 @@ ol.worlds b{color:var(--hazard);font-weight:normal}
         <dt><span class="sw" style="background:#ff4fa0"></span>Removal monster</dt><dd>Two stabs or one thrown chisel · 250</dd>
         <dt><span class="sw" style="background:#9cc3e6"></span>Bystanders</dt><dd>Leave them alone. Hitting one costs 200.</dd>
         <dt><span class="sw" style="background:#38e0ff"></span>Scuba mask</dt><dd>5 seconds of immunity. Anything hostile you touch is destroyed.</dd>
-        <dt><span class="sw" style="background:#84bd41"></span>Site audit</dt><dd>An SQN auditor may turn up (up to 3 a game). Answer right for +10% on that site's points, wrong for −10%. In worlds 3 to 5 a right answer also gives a scuba mask or Super Vacuum to the halfway point.</dd>
+        <dt><span class="sw" style="background:#84bd41"></span>Site audit</dt><dd>The SQN auditor runs out to meet you early on the first site of every world. Answer right for +10% on that site's points, wrong for −10%. In worlds 3 to 5 a right answer also gives a scuba mask or Super Vacuum until halfway.</dd><dt><span class="sw" style="background:#5bd17a"></span>Continue</dt><dd>Once a game, when you run out of lives, answer a harder awareness question correctly for 3 extra lives.</dd>
         <dt><span class="sw" style="background:#ff3b4f"></span>Lives</dt><dd>Start with 4. A perfect site (no asbestos missed, no lives lost) earns an extra life, up to 5.</dd>
         <dt><span class="sw" style="background:#ff7a1a"></span>Throwing chisel</dt><dd>+5 chisels. Stockpile up to 20, and you start each site with none.</dd>
       </dl>
@@ -508,10 +509,27 @@ const AUDIT_QS=[
  ['Which law covers asbestos in NZ workplaces?','Health and Safety at Work (Asbestos) Regulations 2016','The Road Code','Rugby union rules'],
  ['Every workplace with asbestos must have a written...','Asbestos management plan','Lunch roster','Christmas party plan'],
 ];
-const AUDIT_CHANCE=0.15,AUDIT_MAX=3,AUDIT_PCT=0.10;
-let auditPlan=null,runAudits=0,usedAuditQs=[],siteAudit=0,auditAdj=0,halfPower=null,auditorT=0,auditCur=null;
+// Harder questions for the Continue offer (first option is correct).
+const HARD_QS=[
+ ['NZ workplace exposure standard for asbestos (8-hour average)?','0.1 fibres/mL','1 fibre/mL','0.5 fibres/mL','10 fibres/mL'],
+ ['After removal, clearance air monitoring must read below...','0.01 fibres/mL','0.1 fibres/mL','0.5 fibres/mL','1 fibre/mL'],
+ ['Non-friable asbestos can be removed without a licence up to...','10 m²','50 m²','100 m²','Any amount'],
+ ['WorkSafe must be notified of licensed removal at least...','5 days before work starts','24 hours before','The day it starts','After it is finished'],
+ ['Who does the clearance inspection after Class A removal?','An independent licensed asbestos assessor','The removalist who did the job','The building owner','Any site supervisor'],
+ ['Mesothelioma is a cancer of the...','Lining of the lungs or abdomen','Airways of the lungs','Lymph nodes','Throat'],
+ ['Asbestosis is...','Scarring of the lung tissue','A cancer of the lung lining','A skin rash from fibres','A short-term allergy'],
+ ['Which asbestos type is a serpentine (curly) fibre?','Chrysotile','Amosite','Crocidolite','Tremolite'],
+ ['How often must an asbestos management plan be reviewed, at least?','Every 5 years','Every 10 years','Every 6 months','Only when sold'],
+ ['Health monitoring records for asbestos workers are kept for at least...','40 years','5 years','10 years','Until they retire'],
+ ['A respirator user seal (fit) check should be done...','Every time you put it on','Once a week','Once a year','Only after a fit test'],
+ ['Asbestos is confirmed present by...','Lab analysis of a sample at an accredited lab','Looking at it closely','The age of the building alone','A magnet test'],
+ ['Tremolite asbestos is a known contaminant of some...','Vermiculite and talc','Concrete blocks','Pine timber','Glass wool'],
+ ['Import of asbestos-containing products into NZ was banned in...','2016','1984','2002','2020'],
+];
+const AUDIT_PCT=0.10,CONT_LIVES=3;
+let auditRun=null,auditY=GY-16,contUsed=false,auditPlan=null,runAudits=0,usedAuditQs=[],siteAudit=0,auditAdj=0,halfPower=null,auditorT=0,auditCur=null;
 const AUDITOR=(()=>{const rows=["....WWWW....","...WWWWWW...","..wWWWWWWWW.","...SSSSS....","...SSSES....","...SSSSS....","....SSS.....","..NNNNNNN...",".SNGGGGGNCC.",".SNNNNNNNCPC","..NNNNNNNCC.","..BBBBBBB..."].concat(legs.idle);
-  const s=sprite(rows,{W:'#f4f4f0',w:'#c9ced6',S:'#d9a57a',E:'#1a1a2e',N:'#253746',G:'#84bd41',C:'#8a5a2a',P:'#ffffff',B:'#3a3f4a',K:'#2a1f1a'});return[flip(s),s]})();
+  const s=sprite(rows,{W:'#f4f4f0',w:'#c9ced6',S:'#d9a57a',E:'#1a1a2e',N:'#253746',G:'#84bd41',C:'#8a5a2a',P:'#ffffff',B:'#3a3f4a',K:'#2a1f1a'});const run=['r1','r2'].map(k=>flip(sprite(rows.slice(0,12).concat(legs[k]),{W:'#f4f4f0',w:'#c9ced6',S:'#d9a57a',E:'#1a1a2e',N:'#253746',G:'#84bd41',C:'#8a5a2a',P:'#ffffff',B:'#3a3f4a',K:'#2a1f1a'})));const out=[flip(s),s];out.run=run;return out})();
 const CHARGE_MAX=40;
 const canCharge=()=>!!(boss&&arena&&arena.locked&&!arena.done&&p.ammo>0&&!mesoT&&state==='play');
 function superThrow(){if(p.ammo<=0)return;p.ammo--;p.attackT=12;p.attackKind='throw';const sv=role==='surveyor';
@@ -560,7 +578,7 @@ function genLevel(){
   for(const f of mF)placeFloating('mask',len*f);
   Object.assign(p,{x:40,y:GY-16,vx:0,vy:0,inv:60,mask:0,vac:0,ammo:0,attackT:0,safe:{x:40,y:GY-16}});
   siteAudit=0;auditAdj=0;halfPower=null;auditorT=0;auditPlan=null;
-  if(runVariants&&runAudits<AUDIT_MAX&&rnd()<AUDIT_CHANCE){const L=2500+stageN()*450+loopN()*400;auditPlan=worldIdx()>=2?{start:true}:{x:L*(0.3+rnd()*0.4)}}
+  auditRun=null;if(runVariants&&stageN()===1)auditPlan={x:levelLen*(0.11+rnd()*0.08),power:worldIdx()>=2};
   mult=1;cheatUsed=false;lostLife=false;lvlFrames=0;shed=null;cavs=[];siteStartScore=score;labBonus=0;props=[{kind:'sqnsign',x:150}];mesoT=0;mesoAt=rnd()<MESO_CHANCE?RIr(1200,3600):-1;
   camX=0;windT=0;darkT=0;spawn={drop:220,debris:260,ammo:400};
   banner={t:160,big:(worldIdx()+1)+'-'+st+'  '+WD.name,small:bossLvl?'Boss at the end of this site':(st===1&&lp>0?'Loop '+(lp+1)+': tougher crews':'Clear the site, reach the decon unit')};
@@ -705,9 +723,9 @@ const solidAt=(x,y)=>solids.some(s=>x>=s.x&&x<s.x+s.w&&y>=s.y&&y<s.y+s.h);
 const keys={left:false,right:false,jump:false};
 const MAP={ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',Space:'jump',ArrowUp:'jump',KeyW:'jump',KeyX:'act',KeyK:'act',KeyP:'pause',Escape:'pause',KeyM:'mute',KeyN:'music',Enter:'start'};
 const postForm=document.getElementById('postForm');
-function activateCheat(){if(state!=='play'||mesoT)return;if(cheatUsed){banner={t:80,big:'CHEAT ALREADY USED',small:'One per site. Try again on the next one'};return}cheatUsed=true;mult=2;sfx.cheat();banner={t:110,big:'CHEAT: x2 POINTS',small:'For the rest of this site'}}
+function activateCheat(){return;/* cheat removed */if(state!=='play'||mesoT)return;if(cheatUsed){banner={t:80,big:'CHEAT ALREADY USED',small:'One per site. Try again on the next one'};return}cheatUsed=true;mult=2;sfx.cheat();banner={t:110,big:'CHEAT: x2 POINTS',small:'For the rest of this site'}}
 function confirmRole(){role=ROLE_ORDER[selIdx]||'assessor';LS.set('fhRole',role);sfx.pick();startRun()}
-function startRun(){runAudits=0;usedAuditQs=[];runVariants=Array.from({length:30},()=>Math.floor(rnd()*5));level=1;score=0;perfectPrev=false;deathCause='';p.hp=BASE_LIVES;p.ammo=0;lifeGained=false;genLevel();state='play'}
+function startRun(){runAudits=0;contUsed=false;auditRun=null;usedAuditQs=[];runVariants=Array.from({length:30},()=>Math.floor(rnd()*5));level=1;score=0;perfectPrev=false;deathCause='';p.hp=BASE_LIVES;p.ammo=0;lifeGained=false;genLevel();state='play'}
 function press(a){
   ensureAudio();
   if(a==='mute'){muted=!muted;LS.set('fhMute',muted?'1':'0');if(master)master.gain.value=muted?0:0.9;return}
@@ -726,7 +744,6 @@ addEventListener('keydown',e=>{
   if(!postForm.hidden||!document.getElementById('share').hidden)return;
   if(state==='audit'){auditKey(e);return}
   const t=e.target;if(t&&t!==cv&&t.closest&&t.closest('input,textarea,select,button'))return;
-  if(state==='play'&&e.key&&e.key.length===1){cheatBuf=(cheatBuf+e.key.toUpperCase()).slice(-6);if(cheatBuf==='CHISEL'){cheatBuf='';activateCheat()}}
   const a=MAP[e.code];if(!a)return;e.preventDefault();
   if(state==='select'&&(a==='left'||a==='right')){if(!e.repeat){selIdx=(selIdx+(a==='left'?2:1))%3;sfx.clink()}return}
   if(a==='left'||a==='right'){keys[a]=true;ensureAudio();return}
@@ -767,7 +784,7 @@ cv.addEventListener('pointerdown',e=>{
   ensureAudio();
   if(e.pointerType==='touch'||e.pointerType==='pen'){setTouchMode();e.preventDefault();enterImmersive()}
   const r=cv.getBoundingClientRect(),sc=Math.min(r.width/W,r.height/H),cx=(e.clientX-r.left-(r.width-W*sc)/2)/sc,cy=(e.clientY-r.top-(r.height-H*sc)/2)/sc;
-  if(state==='play'){if(cx>W-80&&cy<20){const now=performance.now();cheatTaps=cheatTaps.filter(t=>now-t<2000);cheatTaps.push(now);if(cheatTaps.length>=5){cheatTaps=[];activateCheat()}}}
+  if(state==='play'){}
   else if(state==='select'){const i=Math.floor((cx-SEL.x0)/(SEL.w+SEL.gap));if(i>=0&&i<3&&cx-SEL.x0-i*(SEL.w+SEL.gap)<=SEL.w&&cy>SEL.y&&cy<SEL.y+SEL.h){ensureAudio();if(i===selIdx)confirmRole();else{selIdx=i;sfx.clink()}}}
   else if(postForm.hidden)press('start');
 });
@@ -832,21 +849,30 @@ function hurt(from){
 function saveHi(){if(score>hi){hi=score;LS.set('fibreHunterHi',hi)}}
 function auditPick(){let pool=AUDIT_QS.map((q,i)=>i).filter(i=>!usedAuditQs.includes(i));if(!pool.length){usedAuditQs=[];pool=AUDIT_QS.map((q,i)=>i)}const i=pool[Math.floor(rnd()*pool.length)];usedAuditQs.push(i);
   const q=AUDIT_QS[i],opts=[{t:q[1],ok:true},{t:q[2],ok:false},{t:q[3],ok:false}];for(let k=opts.length-1;k>0;k--){const j=Math.floor(rnd()*(k+1));[opts[k],opts[j]]=[opts[j],opts[k]]}return{q:q[0],opts}}
-function openAudit(){
-  auditPlan.done=true;runAudits++;state='audit';keys.left=keys.right=keys.jump=false;chargeT=0;p.vx=0;auditorT=9999;
-  auditCur=auditPick();auditCur.answered=false;sfx.pick();
+function hardPick(){const q=HARD_QS[Math.floor(rnd()*HARD_QS.length)],opts=q.slice(1).map((t,i)=>({t,ok:i===0}));for(let k=opts.length-1;k>0;k--){const j=Math.floor(rnd()*(k+1));[opts[k],opts[j]]=[opts[j],opts[k]]}return{q:q[0],opts}}
+function openAudit(cont){
+  if(!cont){auditPlan.done=true;runAudits++}else auditY=p.y+p.h-16;
+  state='audit';keys.left=keys.right=keys.jump=keys.act=false;chargeT=0;p.vx=0;auditorT=9999;
+  auditCur=cont?hardPick():auditPick();auditCur.answered=false;auditCur.cont=!!cont;sfx.pick();
+  $('auditTitle').textContent=cont?'CONTINUE?':'SITE AUDIT';
+  $('auditSub').textContent=cont?'Answer this harder question correctly for '+CONT_LIVES+' extra lives. One continue per game.':'The SQN auditor has a question. Answer to keep working.';
   const el=$('audit');try{$('auditImg').src=AUDITOR[1].toDataURL()}catch(e){}
   $('auditQ').textContent=auditCur.q;$('auditMsg').textContent='';$('auditMsg').className='amsg';
   const box=$('auditOpts');box.textContent='';
   auditCur.opts.forEach((o,i)=>{const b=document.createElement('button');b.type='button';const k=document.createElement('b');k.textContent=String.fromCharCode(65+i);const t=document.createElement('span');t.textContent=o.t;b.append(k,t);b.addEventListener('click',()=>answerAudit(i));box.appendChild(b)});
+  if(cont){const b=document.createElement('button');b.type='button';b.className='skip';b.textContent='No thanks, end the game';b.addEventListener('click',()=>answerAudit(-1));box.appendChild(b)}
   el.hidden=false;if(!touchMode)setTimeout(()=>{try{box.firstChild.focus({preventScroll:true})}catch(e){}},30);
 }
 function answerAudit(i){
   if(!auditCur)return;if(auditCur.answered){closeAudit();return}
-  auditCur.answered=true;const ok=auditCur.opts[i].ok;siteAudit=ok?1:-1;
-  const btns=[...$('auditOpts').children];btns.forEach((b,j)=>{b.disabled=false;if(auditCur.opts[j].ok)b.classList.add('right');else if(j===i)b.classList.add('wrong')});
+  if(auditCur.cont&&i<0){auditCur.answered=true;auditCur.ok=false;auditCur.closeAt=0;closeAudit();return}
+  auditCur.answered=true;const ok=auditCur.opts[i].ok;auditCur.ok=ok;if(!auditCur.cont)siteAudit=ok?1:-1;
+  const btns=[...$('auditOpts').children];btns.forEach((b,j)=>{b.disabled=false;const o=auditCur.opts[j];if(!o){b.hidden=true;return}if(o.ok)b.classList.add('right');else if(j===i)b.classList.add('wrong')});
+  if(auditCur.cont){const m=$('auditMsg');m.className='amsg '+(ok?'good':'bad');
+    m.textContent=ok?'Correct! '+CONT_LIVES+' extra lives. Back to work. Press any key or tap to continue.':'Not quite. The answer is "'+auditCur.opts.find(o=>o.ok).t+'". Game over. Press any key or tap.';
+    if(ok)sfx.clear();else sfx.oi();auditCur.closeAt=performance.now()+400;setTimeout(()=>{if(auditCur&&auditCur.answered&&state==='audit')closeAudit()},ok?3200:5200);return}
   let extra='';
-  if(ok&&auditPlan&&auditPlan.start){const t=rnd()<0.5?'mask':'vac';halfPower={type:t,untilX:levelLen/2};extra=t==='mask'?' Plus a scuba mask until halfway.':' Plus a Super Vacuum until halfway.'}
+  if(ok&&auditPlan&&auditPlan.power){const t=rnd()<0.5?'mask':'vac';halfPower={type:t,untilX:levelLen/2};extra=t==='mask'?' Plus a scuba mask until halfway.':' Plus a Super Vacuum until halfway.'}
   const m=$('auditMsg');m.className='amsg '+(ok?'good':'bad');
   m.textContent=(ok?'Correct! This site\'s points get +10%.':'Not quite. The answer is "'+auditCur.opts.find(o=>o.ok).t+'". This site\'s points get -10%.')+extra+' Press any key or tap to continue.';
   if(ok){sfx.clear()}else sfx.oi();
@@ -854,19 +880,24 @@ function answerAudit(i){
   setTimeout(()=>{if(auditCur&&auditCur.answered&&state==='audit')closeAudit()},ok?3200:4800);
 }
 document.getElementById('audit').addEventListener('click',e=>{if(e.target.id==='audit'&&auditCur&&auditCur.answered)closeAudit()});
-function closeAudit(){if(!auditCur)return;if(performance.now()<(auditCur.closeAt||0))return;$('audit').hidden=true;auditCur=null;auditorT=80;if(state==='audit')state='play';try{cv.focus({preventScroll:true})}catch(e){}}
+function closeAudit(){if(!auditCur)return;if(performance.now()<(auditCur.closeAt||0))return;$('audit').hidden=true;const c=auditCur;auditCur=null;auditorT=80;
+  if(c.cont){if(c.ok){p.hp=CONT_LIVES;mesoT=0;mesoAt=-1;deathCause='';p.x=p.safe.x;p.y=p.safe.y-2;p.vx=0;p.vy=0;p.inv=150;state='play';floaters.push({x:p.x-24,y:p.y-14,txt:'+'+CONT_LIVES+' LIVES',t:80,col:'#5bd17a'});if(boss)playSong('boss'+level,777+worldIdx()*13+loopN(),'minor',150+worldIdx()*3,true);else playSong('lvl'+level,1000+level*31,WD.music.mode,WD.music.bpm+loopN()*4,false)}else{auditorT=0;endGame()}}
+  else if(state==='audit')state='play';
+  try{cv.focus({preventScroll:true})}catch(e){}}
 function auditKey(e){
   if(!auditCur)return;e.preventDefault();
   if(auditCur.answered){if(!e.repeat)closeAudit();return}
-  const map={Digit1:0,Digit2:1,Digit3:2,Numpad1:0,Numpad2:1,Numpad3:2,KeyA:0,KeyB:1,KeyC:2};
+  const map={Digit1:0,Digit2:1,Digit3:2,Digit4:3,Numpad1:0,Numpad2:1,Numpad3:2,Numpad4:3,KeyA:0,KeyB:1,KeyC:2,KeyD:3};
+  if(map[e.code]>=auditCur.opts.length)return;
   if(e.code in map){answerAudit(map[e.code]);return}
   const btns=[...$('auditOpts').children],cur=btns.indexOf(document.activeElement);
   if(e.code==='ArrowDown'||e.code==='ArrowRight'){btns[(cur+1+btns.length)%btns.length].focus();return}
   if(e.code==='ArrowUp'||e.code==='ArrowLeft'){btns[(cur-1+btns.length*2)%btns.length].focus();return}
-  if((e.code==='Enter'||e.code==='Space'||e.code==='KeyX')&&cur>=0&&!e.repeat)answerAudit(cur);
+  if((e.code==='Enter'||e.code==='Space'||e.code==='KeyX')&&cur>=0&&!e.repeat)answerAudit(cur<auditCur.opts.length?cur:-1);
 }
 function settleAudit(){if(!siteAudit||shed)return 0;const earned=score-siteStartScore;const adj=Math.round(Math.max(0,earned)*AUDIT_PCT)*siteAudit;score=Math.max(0,score+adj);siteAudit=0;return adj}
-function gameOver(){settleAudit();lastRun={score:Math.floor(score),code:ROLES[role].code,reached:reachedBase(),world:WD.name,tag:cleanTag(LS.get('fhTag')||''),team:cleanTeam(LS.get('fhTeam')||'')};LS.set('fhLastRun',JSON.stringify(lastRun));state='over';sfx.over();saveHi();playSong('title',7,'major',120,false);openPost(deathCause||'GAME OVER')}
+function gameOver(){if(!contUsed&&!shed){contUsed=true;openAudit(true);return}endGame()}
+function endGame(){settleAudit();lastRun={score:Math.floor(score),code:ROLES[role].code,reached:reachedBase(),world:WD.name,tag:cleanTag(LS.get('fhTag')||''),team:cleanTeam(LS.get('fhTeam')||'')};LS.set('fhLastRun',JSON.stringify(lastRun));state='over';sfx.over();saveHi();playSong('title',7,'major',120,false);openPost(deathCause||'GAME OVER')}
 
 /* ================= boss ================= */
 function startBoss(){
@@ -953,7 +984,10 @@ function update(){
   if(keys.act&&chargeT>0&&canCharge()){if(chargeT<CHARGE_MAX){chargeT++;if(chargeT%8===0)tone(260+chargeT*14,0.05,'square',0.03);if(chargeT===CHARGE_MAX)sfx.pick()}}else if(chargeT&&!canCharge())chargeT=0;
   lvlFrames++;
   if(auditorT>0)auditorT--;
-  if(auditPlan&&!auditPlan.done&&!shed&&!boss&&!mesoT&&p.onGround&&(auditPlan.start?lvlFrames>=50:(p.x>=auditPlan.x&&(!arena||p.x<arena.x-40)))){openAudit();return}
+  if(auditPlan&&!auditPlan.done&&!shed&&!boss&&!mesoT){
+    if(!auditRun&&p.x>=auditPlan.x){auditRun={x:Math.max(camX+W+6,p.x+120),y:GY-16,t:0};sfx.pick();banner={t:100,big:'SITE AUDIT!',small:'The SQN auditor is running your way'}}
+    if(auditRun){auditRun.t++;auditRun.x=Math.max(p.x+22,auditRun.x-2.6);if(p.onGround)auditRun.y+=(p.y+p.h-16-auditRun.y)*0.25;
+      if(auditRun.x<=p.x+22.5&&p.onGround){auditY=auditRun.y;auditRun=null;openAudit();return}}}
   if(halfPower){if(p.x<halfPower.untilX){if(halfPower.type==='mask')p.mask=Math.max(p.mask,30);else p.vac=Math.max(p.vac,30)}else halfPower=null}
   if(mesoAt>0&&lvlFrames>=mesoAt&&!mesoT){mesoT=1;p.mask=0;p.vac=0;keys.jump=false;banner={t:220,big:'DIAGNOSIS: MESOTHELIOMA',small:'Years of fibre exposure have caught up with you'};sfx.over();playSong('meso',4040,'minor',66,false)}
   if(mesoT){mesoT++;p.inv=9999;if(mesoT%50===0){sfx.cough();floaters.push({x:p.x-8,y:p.y-12,txt:'*cough*',t:40,col:'#c8cdd6'})}if(mesoT>=320){deathCause='MESOTHELIOMA';p.inv=0;gameOver();return}}
@@ -1402,7 +1436,9 @@ function draw(){
   if(boss)drawBoss();
   for(const h of hazards)drawHazard(h);
   for(const s of shots){ctx.save();ctx.translate(Math.round(s.x+5),Math.round(s.y+1));if(s.sup){ctx.globalAlpha=0.5;rect(-9,-5,20,10,'#ff6a1a');rect(-6,-3,14,6,'#ffd04a');ctx.globalAlpha=1;ctx.scale(1.6,1.6)}ctx.rotate(s.rot*Math.sign(s.vx));drawChisel(-6,-1,1);ctx.restore()}
-  if(auditorT>0){const ax=p.x+22+(auditorT<80?(80-auditorT)*1.2:0),ay=GY-16;ctx.globalAlpha=auditorT<80?auditorT/80:1;ctx.drawImage(AUDITOR[auditorT<80?1:0],Math.round(ax),ay);if(state==='audit'&&frameN%40<26)text('?',ax+3,ay-10,'#84bd41',8);ctx.globalAlpha=1}
+  if(auditRun){const ax=Math.round(auditRun.x),ay=Math.round(auditRun.y);ctx.drawImage(AUDITOR.run[Math.floor(auditRun.t/6)%2],ax,ay);
+    if(frameN%30<20){rect(ax-8,ay-15,30,10,'#84bd41');rect(ax-7,ay-14,28,8,'#0d0f14');text('AUDIT!',ax+7,ay-13,'#84bd41',6,'center')}}
+  if(auditorT>0){const ax=p.x+22+(auditorT<80?(80-auditorT)*1.2:0),ay=Math.round(auditY);ctx.globalAlpha=auditorT<80?auditorT/80:1;ctx.drawImage(AUDITOR[auditorT<80?1:0],Math.round(ax),ay);if(state==='audit'&&frameN%40<26)text('?',ax+3,ay-10,'#84bd41',8);ctx.globalAlpha=1}
   drawPlayer();drawCharge();
   for(const q of parts){ctx.globalAlpha=Math.min(1,q.t/20);if(q.flame){rect(q.x,q.y,q.s,q.s,q.t>24?'#fff2a8':q.t>16?'#ffb000':q.t>9?'#ff6a1a':'#c8301a');continue}if(q.streak)rect(q.x,q.y,8,1,q.col);else rect(q.x,q.y,q.fibre?1:2,2,q.col)}ctx.globalAlpha=1;
   for(const f of floaters)text(f.txt,f.x,f.y,f.col,6);
