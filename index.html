@@ -248,7 +248,7 @@ ol.worlds b{color:var(--hazard);font-weight:normal}
         <dt><span class="sw" style="background:#9cc3e6"></span>Bystanders</dt><dd>Leave them alone. Hitting one costs 200.</dd>
         <dt><span class="sw" style="background:#38e0ff"></span>Scuba mask</dt><dd>5 seconds of immunity. Anything hostile you touch is destroyed.</dd>
         <dt><span class="sw" style="background:#ff3b4f"></span>Lives</dt><dd>Start with 4. A perfect site (no asbestos missed, no lives lost) earns an extra life, up to 5.</dd>
-        <dt><span class="sw" style="background:#ff7a1a"></span>Throwing chisel</dt><dd>+5 chisels. Carry up to 10, and you start each site with none.</dd>
+        <dt><span class="sw" style="background:#ff7a1a"></span>Throwing chisel</dt><dd>+10 chisels. Carry up to 20, and you start each site with none.</dd>
       </dl>
     </div>
   </section>
@@ -297,7 +297,7 @@ const ROLE_ORDER=['labtech','surveyor','assessor'];
 const ROLES={
   labtech:{name:'LAB TECH',code:'L',perks:['+10% SITE BONUS','WHEN YOU FIND','ALL THE ASBESTOS'],pal:Object.assign({},pPal,{S:'#c99a74',Y:'#2c6fd1',y:'#1f4f99',O:'#f4f6f8',R:'#9cc7e8',B:'#4a5060'})},
   surveyor:{name:'SURVEYOR',code:'S',perks:['LONG CHISEL THROW','x2 ASBESTOS PTS','IN A SCUBA MASK'],pal:Object.assign({},pPal,{Y:'#f2f2f2',y:'#c9ced6',O:'#c6f03a',R:'#e8eef4',B:'#3a3f4a'})},
-  assessor:{name:'ASSESSOR',code:'A',perks:['ANGRY CONTRACTORS','2 HITS, FASTER,','BUT +5% POINTS'],pal:Object.assign({},pPal,{H:'#5a3420',h:'#7a4a2c',L:'#c94a5a'}),
+  assessor:{name:'ASSESSOR',code:'A',perks:['ANGRY CONTRACTORS','2 HITS, FASTER,','BUT +25% POINTS'],pal:Object.assign({},pPal,{H:'#5a3420',h:'#7a4a2c',L:'#c94a5a'}),
     top:["....YYYY....","...YYYYYY...","..yYYYYYYYY.","..HSSSSS....",".HhSSSES....",".HHSSSLS....",".H..SSS.....","H.OOOOOOO...",".SORRRRROS..",".SOOOOOOOS..","..OOOOOOO...","..BBBBBBB..."]}};
 const PLR={};for(const r of ROLE_ORDER){PLR[r]={};for(const k in legs){const s=sprite((ROLES[r].top||top).concat(legs[k]),ROLES[r].pal);PLR[r][k]=[flip(s),s]}}
 const CLASSIC_HERO=sprite(top.concat(legs.idle),pPal);
@@ -438,10 +438,14 @@ let state='title',level=1,score=0,hi=+LS.get('fibreHunterHi')||0,frameN=0;
 let solids=[],enemies=[],pickups=[],shots=[],parts=[],floaters=[],hazards=[],npcs=[];
 let decon,levelLen=0,worldEnd=0,camX=0,clearBonus=0,flash=0,shake=0,arena=null,boss=null,banner=null,windT=0,spawn={drop:200,debris:240,ammo:400},bossMaskGiven=false;
 let WD=WORLDS[0];
+let runVariants=null;
+// Alternative layouts per site. Each one carries exactly the same collectable points as the original layout.
+const LEVEL_SEEDS=[[68571,147761,2507623,3307442],[813934,3245067,10918578,21625066],[775316,7498547,7720279,8860615],[158611,214044,427857,1718654],[7643043,12679527,15071065,15522448],[223917,263512,1490957,1768122],[327841,1436501,1610719,2030426],[1730481,2752032,4042829,6252230],[694069,939558,994991,1256318],[402043,1090996,1534460,1843301],[5447423,6104700,9383166,9399004],[380240,776190,1425548,2312476],[72376,135728,4831695,5449377],[1672991,1823452,2480729,2559919],[208953,6805480,8294252,9727591],[154497,194092,257444,740503],[472234,519748,1343324,1668003],[647429,1043379,2041173,2650936],[276213,656325,1693714,2216368],[1686772,1781800,8592140,8988090],[3081493,3493281,3635823,3651661],[136602,176197,603823,1427399],[5886773,9014778,13069306,24092554],[162313,273179,1088836,1484786],[5880808,11344918,20111251,21702970],[7489342,13214779,20262689],[323624,561194,830440,1582745],[300844,2296432,3531796,3610986],[2606250,10137219,11055823,19584586],[389907,587882,627477,706667]];
+function levelSeed(){const base=4242+level*977,v=LEVEL_SEEDS[level-1],k=runVariants?runVariants[(level-1)%runVariants.length]:0;return v&&k?v[(k-1)%v.length]:base}
 let darkT=0,lifeGained=false,shed=null,cavs=[],props=[],siteStartScore=0,labBonus=0;
 const SHED_FRAMES=1800,SHED_WD={key:'shed',name:'BONUS SHED',kinds:[],asb:1,npcs:null,music:{mode:'major',bpm:168},boss:{name:'',suit:'#ffffff',filt:'#ffffff'}};
 let mult=1,cheatUsed=false,cheatBuf='',cheatTaps=[],lostLife=false,perfectPrev=false,mesoAt=-1,mesoT=0,lvlFrames=0,deathCause='';
-const MASK_BONUS=72,BASE_LIVES=4,MAX_LIVES=5,MAX_AMMO=10,VAC_FRAMES=600,VAC_R=120,MESO_CHANCE=0.07;
+const MASK_BONUS=72,BASE_LIVES=4,MAX_LIVES=5,MAX_AMMO=20,CHISEL_PICKUP=10,AMMO_BONUS_CAP=10,INV_HIT=135,INV_FALL=150,ANGRY_BONUS=1.25,VAC_FRAMES=600,VAC_R=120,MESO_CHANCE=0.07;
 function addPts(n){const v=Math.round(n*mult);score+=v;return v}
 const xTag=()=>mult>1?' x'+mult:'';
 const worldIdx=()=>Math.floor((level-1)/3)%5,stageN=()=>(level-1)%3+1,loopN=()=>Math.floor((level-1)/15);
@@ -456,7 +460,7 @@ function addPick(type,x,y,float=true){pickups.push({type,x,y,w:12,h:12,vx:0,vy:0
 
 function genLevel(){
   WD=WORLDS[worldIdx()];const st=stageN(),lp=loopN(),bossLvl=st===3;
-  seedFn=mulberry(4242+level*977);
+  seedFn=mulberry(levelSeed());
   solids=[];enemies=[];pickups=[];shots=[];parts=[];floaters=[];hazards=[];npcs=[];boss=null;bossMaskGiven=false;
   const len=2500+st*450+lp*400;levelLen=len;
   let x=-40,first=true;
@@ -592,7 +596,7 @@ const MAP={ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',Space:'j
 const postForm=document.getElementById('postForm');
 function activateCheat(){if(state!=='play'||mesoT)return;if(cheatUsed){banner={t:80,big:'CHEAT ALREADY USED',small:'One per site. Try again on the next one'};return}cheatUsed=true;mult=2;sfx.cheat();banner={t:110,big:'CHEAT: x2 POINTS',small:'For the rest of this site'}}
 function confirmRole(){role=ROLE_ORDER[selIdx]||'assessor';LS.set('fhRole',role);sfx.pick();startRun()}
-function startRun(){level=1;score=0;perfectPrev=false;deathCause='';p.hp=BASE_LIVES;p.ammo=0;lifeGained=false;genLevel();state='play'}
+function startRun(){runVariants=Array.from({length:30},()=>Math.floor(rnd()*5));level=1;score=0;perfectPrev=false;deathCause='';p.hp=BASE_LIVES;p.ammo=0;lifeGained=false;genLevel();state='play'}
 function press(a){
   ensureAudio();
   if(a==='mute'){muted=!muted;LS.set('fhMute',muted?'1':'0');if(master)master.gain.value=muted?0:0.9;return}
@@ -683,7 +687,7 @@ function kill(e,src){
   e.dead=true;sfx.kill();
   if(e.type==='asb'){const a=ASB[e.kind],sm=role==='surveyor'&&p.mask>0?2:1;const v=addPts(a.pts*sm);const mb=p.mask>0;if(mb)p.mask+=MASK_BONUS;floaters.push({x:e.x,y:e.y-6,txt:'+'+v+' '+a.name+(sm>1?' MASK x2':'')+xTag()+(mb?' +1.2s':''),t:70,col:a.pal.L});burst(e.x+7,e.y+5,a.pal.L,14);burst(e.x+7,e.y+5,a.pal.G,8);
     if(rnd()<0.08)addPick('chisel',e.x,e.y-6,false)}
-  else{const v=addPts(e.angry?Math.round(250*1.05):250);floaters.push({x:e.x-6,y:e.y-6,txt:'+'+v+xTag(),t:60,col:'#ff4fa0'});burst(e.x+7,e.y+10,'#e9edf2',16);burst(e.x+7,e.y+8,'#ff4fa0',8);
+  else{const v=addPts(e.angry?Math.round(250*ANGRY_BONUS):250);floaters.push({x:e.x-6,y:e.y-6,txt:'+'+v+xTag(),t:60,col:'#ff4fa0'});burst(e.x+7,e.y+10,'#e9edf2',16);burst(e.x+7,e.y+8,'#ff4fa0',8);
     const r=rnd();if(r<0.3)addPick('chisel',e.x,e.y,false);else if(r<0.38)addPick('mask',e.x,e.y,false);else if(r<0.46)addPick('medkit',e.x,e.y,false)}
   if(src==='mask')flash=4;
 }
@@ -693,7 +697,7 @@ function hitNpc(n){
 }
 function burst(x,y,col,n){for(let i=0;i<n;i++)parts.push({x,y,vx:(rnd()-.5)*3,vy:-rnd()*2.6,t:30+rnd()*25,col,g:0.12})}
 function hurt(from){
-  p.hp--;lostLife=true;p.inv=90;sfx.hurt();flash=6;shake=6;try{navigator.vibrate&&navigator.vibrate(40)}catch(e){}
+  p.hp--;lostLife=true;p.inv=INV_HIT;sfx.hurt();flash=6;shake=6;try{navigator.vibrate&&navigator.vibrate(40)}catch(e){}
   p.vx=(p.x<from.x?-1:1)*2.2;p.vy=-3;
   if(p.hp<=0)gameOver();
 }
@@ -779,7 +783,7 @@ function update(){
   p.vy=Math.min(6,p.vy+GRAV);
   moveEnt(p);
   if(p.x<0)p.x=0;if(p.x>worldEnd-p.w)p.x=worldEnd-p.w;
-  if(p.onGround&&p.inv<=0&&p.ground&&!p.ground.oneway&&!enemies.some(e=>Math.abs(e.x-p.x)<40&&Math.abs(e.y-p.y)<30))p.safe={x:p.x,y:p.y};
+  if(p.onGround&&p.inv<=0&&p.ground&&!p.ground.oneway&&solidAt(p.x-10,p.y+p.h+2)&&solidAt(p.x+p.w+10,p.y+p.h+2)&&!enemies.some(e=>Math.abs(e.x-p.x)<40&&Math.abs(e.y-p.y)<30))p.safe={x:p.x,y:p.y};
   p.anim+=Math.abs(p.vx)*0.12;
   if(p.attackT>0)p.attackT--;if(p.inv>0)p.inv--;
   lvlFrames++;
@@ -787,7 +791,7 @@ function update(){
   if(mesoT){mesoT++;p.inv=9999;if(mesoT%50===0){sfx.cough();floaters.push({x:p.x-8,y:p.y-12,txt:'*cough*',t:40,col:'#c8cdd6'})}if(mesoT>=320){deathCause='MESOTHELIOMA';p.inv=0;gameOver();return}}
   if(p.vac>0){p.vac--;if(frameN%2===0){const a=rnd()*Math.PI*2,r=40+rnd()*70;parts.push({x:p.x+5+Math.cos(a)*r,y:p.y+8+Math.sin(a)*r*0.6,vx:-Math.cos(a)*r/16,vy:-Math.sin(a)*r*0.6/16,t:16,col:['#e9e4d6','#cfcabb','#f5c400'][frameN%3],g:0})}if(frameN%9===0)sfx.hum()}
   if(p.mask>0){p.mask--;if(frameN%3===0)parts.push({x:p.x+rnd()*p.w,y:p.y+rnd()*p.h,vx:0,vy:-0.4,t:18,col:['#38e0ff','#7df9ff','#ffffff'][frameN%3],g:0})}
-  if(p.y>H+30){p.hp--;lostLife=true;sfx.hurt();if(p.hp<=0){gameOver();return}p.x=p.safe.x;p.y=p.safe.y-2;p.vx=0;p.vy=0;p.inv=100;floaters.push({x:p.x-20,y:p.y-14,txt:'MIND THE GAP',t:70,col:'#f5c400'})}
+  if(p.y>H+30){p.hp--;lostLife=true;sfx.hurt();if(p.hp<=0){gameOver();return}p.x=p.safe.x;p.y=p.safe.y-2;p.vx=0;p.vy=0;p.inv=INV_FALL;floaters.push({x:p.x-20,y:p.y-14,txt:'MIND THE GAP',t:70,col:'#f5c400'})}
   // stab
   if(p.attackT>0&&p.attackKind==='stab'&&p.attackT<=11){const b=stabBox();
     for(const e of enemies)if(!e.dead&&!p.hitSet.has(e)&&ov(b,e)){p.hitSet.add(e);damage(e,1,'stab')}
@@ -848,7 +852,7 @@ function update(){
   // pickups
   for(const k of pickups){k.t++;if(!k.float){k.vy=Math.min(5,k.vy+GRAV);moveEnt(k);if(k.y>H+30)k.gone=true}
     if(ov(p,k)){k.gone=true;sfx.pick();
-      if(k.type==='chisel'){const got=Math.min(5,MAX_AMMO-p.ammo);p.ammo+=got;addPts(50);floaters.push({x:k.x-14,y:k.y-6,txt:got>0?'+'+got+' CHISEL'+(got>1?'S':'')+(p.ammo>=MAX_AMMO?' (MAX)':''):'CHISELS FULL',t:60,col:'#ff7a1a'})}
+      if(k.type==='chisel'){const got=Math.min(CHISEL_PICKUP,MAX_AMMO-p.ammo);p.ammo+=got;addPts(50);floaters.push({x:k.x-14,y:k.y-6,txt:got>0?'+'+got+' CHISEL'+(got>1?'S':'')+(p.ammo>=MAX_AMMO?' (MAX)':''):'CHISELS FULL',t:60,col:'#ff7a1a'})}
       else if(k.type==='mask'){p.mask=300;sfx.mask();floaters.push({x:k.x-18,y:k.y-6,txt:'SCUBA MASK!',t:70,col:'#38e0ff'})}
       else{if(p.hp<BASE_LIVES)p.hp++;else addPts(100);floaters.push({x:k.x-10,y:k.y-6,txt:'FIRST AID',t:60,col:'#5bd17a'})}}}
   pickups=pickups.filter(k=>!k.gone);
@@ -867,7 +871,7 @@ function update(){
   // goal
   if(!shed&&p.x+p.w>decon.x+30){
     const allFound=!enemies.some(e=>e.type==='asb');labBonus=role==='labtech'&&allFound?Math.round((score-siteStartScore)*0.10):0;score+=labBonus;
-    perfectPrev=!lostLife&&allFound;clearBonus=Math.round((Math.min(p.hp,3)*500+p.ammo*25+level*1000)*mult);score+=clearBonus;sfx.clear();saveHi();
+    perfectPrev=!lostLife&&allFound;clearBonus=Math.round((Math.min(p.hp,3)*500+Math.min(p.ammo,AMMO_BONUS_CAP)*25+level*1000)*mult);score+=clearBonus;sfx.clear();saveHi();
     lifeGained=false;if(perfectPrev&&p.hp<MAX_LIVES){p.hp++;lifeGained=true;setTimeout(()=>sfx.pick(),500)}
     state=stageN()===3?'worldclear':'clear';
     if(state==='worldclear')autoPost();
@@ -1089,7 +1093,7 @@ function drawMaskIcon(x,y){rect(x+1,y+3,10,7,'#1b1b24');rect(x+2,y+4,8,5,'#38e0f
 function drawPickup(k){
   const bob=k.float?Math.round(Math.sin(k.t/12)*2):0,x=Math.round(k.x),y=Math.round(k.y)+bob;
   ctx.globalAlpha=0.25+0.15*Math.sin(k.t/8);rect(x-2,y-2,16,16,k.type==='mask'?'#38e0ff':k.type==='medkit'?'#5bd17a':'#ff7a1a');ctx.globalAlpha=1;
-  if(k.type==='chisel'){ctx.save();ctx.translate(x+6,y+6);ctx.rotate(-0.6);drawChisel(-6,-1,1);ctx.restore();text('5',x+8,y+6,'#ffffff',6)}
+  if(k.type==='chisel'){ctx.save();ctx.translate(x+6,y+6);ctx.rotate(-0.6);drawChisel(-6,-1,1);ctx.restore();text('10',x+5,y+6,'#ffffff',6)}
   else if(k.type==='mask')drawMaskIcon(x,y+1);
   else{rect(x+1,y+3,10,8,'#2e9d55');rect(x+4,y+1,4,2,'#1f6e3b');rect(x+5,y+4,2,6,'#ffffff');rect(x+3,y+6,6,2,'#ffffff')}
 }
