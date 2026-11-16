@@ -221,7 +221,7 @@ ol.worlds b{color:var(--hazard);font-weight:normal}
         <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>Walk the site</dd>
         <dt><kbd>Space</kbd></dt><dd>Jump (hold for higher)</dd>
         <dt><kbd>X</kbd></dt><dd>Stab with the chisel. With throwing chisels in stock, X throws one unless a target is in stabbing range.</dd>
-        <dt>Hold <kbd>Space</kbd></dt><dd>Boss fights only: keep holding after you jump to charge a super chisel throw that does double damage. Let go when the bar flashes. On a phone, hold JUMP.</dd>
+        <dt>Hold <kbd>X</kbd></dt><dd>Boss fights only: hold to charge, let go when the bar flashes to throw a flaming super chisel that does double damage. A quick tap throws normally. On a phone, hold X.</dd>
         <dt><kbd>P</kbd></dt><dd>Pause</dd>
         <dt><kbd>N</kbd> <kbd>M</kbd></dt><dd>Music on/off · Mute everything</dd>
         <dt>Phone</dt><dd>Tap the game to go full screen. Left thumb slides on the arrow pad; right thumb on JUMP (hold for higher) and X.</dd>
@@ -613,10 +613,10 @@ function press(a){
   if(state==='select'){if(a==='jump'||a==='start'||a==='act')confirmRole();return}
   if(state==='clear'||state==='worldclear'||state==='sheddone'){if(a==='jump'||a==='start'){p.hp=Math.max(p.hp,BASE_LIVES);lifeGained=false;if(state==='worldclear'&&worldIdx()===1){genShed()}else{level++;genLevel()}state='play'}return}
   if(state==='pause'){if(a==='jump'||a==='start')state='play';return}
-  if(a==='jump'){keys.jump=true;p.jumpBuf=8;if(canCharge())chargeT=1}
+  if(a==='jump'){keys.jump=true;p.jumpBuf=8}
   if(a==='act'){keys.act=true;attack()}
 }
-function release(a){if(a==='jump'||a==='left'||a==='right')keys[a]=false;if(a==='act')keys.act=false;if(a==='jump'){if(chargeT>=CHARGE_MAX&&canCharge())superThrow();chargeT=0}}
+function release(a){if(a==='jump'||a==='left'||a==='right')keys[a]=false;if(a==='act'){keys.act=false;if(chargeT>0&&canCharge()){if(chargeT>=CHARGE_MAX)superThrow();else throwChisel()}chargeT=0}}
 addEventListener('keydown',e=>{
   if(!postForm.hidden||!document.getElementById('share').hidden)return;
   const t=e.target;if(t&&t!==cv&&t.closest&&t.closest('input,textarea,select,button'))return;
@@ -677,6 +677,7 @@ function attack(){
   const reach={x:p.face>0?p.x+p.w:p.x-20,y:p.y,w:20,h:p.h};
   const close=enemies.some(e=>ov(reach,e))||(boss&&ov(reach,boss))||hazards.some(h=>h.hittable&&ov(reach,h));
   if(p.ammo>0&&!close){
+    if(canCharge()){chargeT=1;return}
     throwChisel();
   } else {p.attackT=14;p.attackKind='stab';p.hitSet=new Set();sfx.stab()}
 }
@@ -720,7 +721,7 @@ function startBoss(){
   solids.push({x:arena.x-6,y:-40,w:6,h:GY+40,kind:'barrier',id:'L'});
   const hp=14+worldIdx()*5+loopN()*10;
   boss={type:'boss',x:arena.x+W-80,y:GY-40,w:28,h:40,vx:0,vy:0,hp,max:hp,state:'intro',t:0,face:-1,inv:0,flash:0,onGround:false,anim:0,lockFace:-1};
-  banner={t:150,big:'BOSS: '+WD.boss.name,small:'Hold SPACE to charge a double-damage chisel throw',boss:true};
+  banner={t:150,big:'BOSS: '+WD.boss.name,small:'Hold X to charge a flaming double-damage chisel',boss:true};
   sfx.roar();shake=20;
   playSong('boss'+level,777+worldIdx()*13+loopN(),'minor',150+worldIdx()*3,true);
   spawn.ammo=240;
@@ -796,7 +797,7 @@ function update(){
   if(p.onGround&&p.inv<=0&&p.ground&&!p.ground.oneway&&solidAt(p.x-10,p.y+p.h+2)&&solidAt(p.x+p.w+10,p.y+p.h+2)&&!enemies.some(e=>Math.abs(e.x-p.x)<40&&Math.abs(e.y-p.y)<30))p.safe={x:p.x,y:p.y};
   p.anim+=Math.abs(p.vx)*0.12;
   if(p.attackT>0)p.attackT--;if(p.inv>0)p.inv--;
-  if(keys.jump&&chargeT>0&&canCharge()){if(chargeT<CHARGE_MAX){chargeT++;if(chargeT%8===0)tone(260+chargeT*14,0.05,'square',0.03);if(chargeT===CHARGE_MAX)sfx.pick()}}else if(chargeT&&!canCharge())chargeT=0;
+  if(keys.act&&chargeT>0&&canCharge()){if(chargeT<CHARGE_MAX){chargeT++;if(chargeT%8===0)tone(260+chargeT*14,0.05,'square',0.03);if(chargeT===CHARGE_MAX)sfx.pick()}}else if(chargeT&&!canCharge())chargeT=0;
   lvlFrames++;
   if(mesoAt>0&&lvlFrames>=mesoAt&&!mesoT){mesoT=1;p.mask=0;p.vac=0;keys.jump=false;banner={t:220,big:'DIAGNOSIS: MESOTHELIOMA',small:'Years of fibre exposure have caught up with you'};sfx.over();playSong('meso',4040,'minor',66,false)}
   if(mesoT){mesoT++;p.inv=9999;if(mesoT%50===0){sfx.cough();floaters.push({x:p.x-8,y:p.y-12,txt:'*cough*',t:40,col:'#c8cdd6'})}if(mesoT>=320){deathCause='MESOTHELIOMA';p.inv=0;gameOver();return}}
@@ -833,7 +834,7 @@ function update(){
   // shots
   for(const s of shots){s.vy+=s.g;s.x+=s.vx;s.y+=s.vy;s.rot+=0.5;s.life--;
     for(const e of enemies)if(!e.dead&&ov(s,e)){damage(e,s.dmg||2,'throw');s.life=0;break}
-    if(s.sup&&frameN%2===0)parts.push({x:s.x+7,y:s.y+2,vx:-s.vx*0.1,vy:(rnd()-.5)*0.4,t:16,col:['#ffb000','#ff7a1a','#ffffff'][frameN%3],g:0});
+    if(s.sup)for(let i=0;i<3;i++)parts.push({x:s.x+4+rnd()*8,y:s.y+rnd()*5,vx:-s.vx*(0.05+rnd()*0.1),vy:-0.25-rnd()*0.6,t:18+rnd()*14,g:-0.01,flame:true,s:rnd()<0.4?3:2});
     if(s.life>0&&boss&&ov(s,boss)){damage(boss,s.dmg||2,'throw');if(s.sup){burst(s.x+7,s.y,'#ffb000',14);floaters.push({x:boss.x-4,y:boss.y-12,txt:'SUPER HIT!',t:50,col:'#ffb000'})}s.life=0}
     if(s.life>0)for(const h of hazards)if(h.hittable&&!h.dead&&ov(s,h)){h.dead=true;s.life=0;addPts(50);burst(h.x+4,h.y+4,'#e9e4d6',8);break}
     if(s.life>0)for(const n of npcs)if(ov(s,n)){hitNpc(n);s.life=0;break}
@@ -1230,9 +1231,9 @@ function draw(){
   for(const e of enemies)if(e.x>camX-20&&e.x<camX+W+20)drawEnemy(e);
   if(boss)drawBoss();
   for(const h of hazards)drawHazard(h);
-  for(const s of shots){ctx.save();ctx.translate(Math.round(s.x+5),Math.round(s.y+1));if(s.sup){ctx.globalAlpha=0.45;rect(-8,-5,18,10,'#ffb000');ctx.globalAlpha=1;ctx.scale(1.6,1.6)}ctx.rotate(s.rot*Math.sign(s.vx));drawChisel(-6,-1,1);ctx.restore()}
+  for(const s of shots){ctx.save();ctx.translate(Math.round(s.x+5),Math.round(s.y+1));if(s.sup){ctx.globalAlpha=0.5;rect(-9,-5,20,10,'#ff6a1a');rect(-6,-3,14,6,'#ffd04a');ctx.globalAlpha=1;ctx.scale(1.6,1.6)}ctx.rotate(s.rot*Math.sign(s.vx));drawChisel(-6,-1,1);ctx.restore()}
   drawPlayer();drawCharge();
-  for(const q of parts){ctx.globalAlpha=Math.min(1,q.t/20);if(q.streak)rect(q.x,q.y,8,1,q.col);else rect(q.x,q.y,q.fibre?1:2,2,q.col)}ctx.globalAlpha=1;
+  for(const q of parts){ctx.globalAlpha=Math.min(1,q.t/20);if(q.flame){rect(q.x,q.y,q.s,q.s,q.t>24?'#fff2a8':q.t>16?'#ffb000':q.t>9?'#ff6a1a':'#c8301a');continue}if(q.streak)rect(q.x,q.y,8,1,q.col);else rect(q.x,q.y,q.fibre?1:2,2,q.col)}ctx.globalAlpha=1;
   for(const f of floaters)text(f.txt,f.x,f.y,f.col,6);
   ctx.restore();
   if(darkT>0){const al=0.93*Math.min(1,(260-darkT)/12,darkT/24),px=p.x+5-camX,py=p.y+8;
