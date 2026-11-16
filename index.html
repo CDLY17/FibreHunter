@@ -89,6 +89,23 @@ html.immersive,html.immersive body{overflow:hidden;overscroll-behavior:none;heig
 .post h3{font-family:var(--f-display);font-size:14px;margin:0;color:var(--hazard)}
 .post .big{font-family:var(--f-display);font-size:12px;color:var(--ink);margin:0}
 .post label{color:var(--muted);font-size:18px}
+.audit{position:absolute;inset:0;display:flex;overflow:auto;background:rgba(6,7,10,.6);padding:10px}
+.audit[hidden]{display:none!important}
+.abox{margin:auto;width:min(480px,100%);background:var(--panel);border:2px solid #84bd41;border-radius:6px;padding:14px;display:grid;gap:8px;box-shadow:0 10px 30px rgba(0,0,0,.6)}
+.ahead{display:flex;gap:12px;align-items:center}
+.ahead img{width:36px;height:48px;image-rendering:pixelated;flex:none}
+.ahead h3{font-family:var(--f-display);font-size:13px;color:#84bd41;margin:0 0 4px}
+.asub{margin:0;color:var(--muted);font-size:17px}
+.aq{margin:0;font-size:22px;line-height:1.15;color:var(--ink)}
+.aopts{display:grid;gap:6px}
+.aopts button{font-family:var(--f-body);font-size:21px;text-align:left;padding:8px 12px;border-radius:4px;border:2px solid var(--line);background:#0d0f14;color:var(--ink);cursor:pointer;display:flex;gap:10px;align-items:baseline}
+.aopts button b{font-family:var(--f-display);font-size:11px;font-weight:normal;color:var(--hazard)}
+.aopts button:hover,.aopts button:focus-visible{border-color:var(--hazard);outline:none}
+.aopts button.right{border-color:#5bd17a;background:#13301e}
+.aopts button.wrong{border-color:var(--bad);background:#3a1418}
+.aopts button:disabled{cursor:default;opacity:1}
+.amsg{margin:0;min-height:1.2em;font-size:19px;color:var(--ink)}
+.amsg.good{color:#5bd17a}.amsg.bad{color:var(--bad)}
 .post input{font-family:var(--f-body);font-size:22px;background:#0d0f14;color:var(--ink);border:2px solid var(--line);border-radius:4px;padding:10px;width:100%;box-sizing:border-box}
 .post input:focus{outline:none;border-color:var(--scuba)}
 .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
@@ -188,6 +205,14 @@ ol.worlds b{color:var(--hazard);font-weight:normal}
           <p class="msg" id="postMsg" role="status"></p>
         </div>
       </form>
+      <div class="audit" id="audit" hidden role="dialog" aria-modal="true" aria-labelledby="auditTitle">
+        <div class="abox">
+          <div class="ahead"><img id="auditImg" alt="" width="36" height="48"><div><h3 id="auditTitle">SITE AUDIT</h3><p class="asub">The SQN auditor has a question. Answer to keep working.</p></div></div>
+          <p class="aq" id="auditQ"></p>
+          <div class="aopts" id="auditOpts"></div>
+          <p class="amsg" id="auditMsg" role="status"></p>
+        </div>
+      </div>
     </div>
     <div class="touch" id="touch">
       <div class="cl">
@@ -256,6 +281,7 @@ ol.worlds b{color:var(--hazard);font-weight:normal}
         <dt><span class="sw" style="background:#ff4fa0"></span>Removal monster</dt><dd>Two stabs or one thrown chisel · 250</dd>
         <dt><span class="sw" style="background:#9cc3e6"></span>Bystanders</dt><dd>Leave them alone. Hitting one costs 200.</dd>
         <dt><span class="sw" style="background:#38e0ff"></span>Scuba mask</dt><dd>5 seconds of immunity. Anything hostile you touch is destroyed.</dd>
+        <dt><span class="sw" style="background:#84bd41"></span>Site audit</dt><dd>An SQN auditor may turn up (up to 3 a game). Answer right for +10% on that site's points, wrong for −10%. In worlds 3 to 5 a right answer also gives a scuba mask or Super Vacuum to the halfway point.</dd>
         <dt><span class="sw" style="background:#ff3b4f"></span>Lives</dt><dd>Start with 4. A perfect site (no asbestos missed, no lives lost) earns an extra life, up to 5.</dd>
         <dt><span class="sw" style="background:#ff7a1a"></span>Throwing chisel</dt><dd>+5 chisels. Stockpile up to 20, and you start each site with none.</dd>
       </dl>
@@ -448,6 +474,41 @@ let solids=[],enemies=[],pickups=[],shots=[],parts=[],floaters=[],hazards=[],npc
 let decon,levelLen=0,worldEnd=0,camX=0,clearBonus=0,flash=0,shake=0,arena=null,boss=null,banner=null,windT=0,spawn={drop:200,debris:240,ammo:400},bossMaskGiven=false;
 let WD=WORLDS[0];
 let runVariants=null,chargeT=0;
+// Site audits: basic asbestos awareness questions (from SQN's Asbestos Awareness course). First option is correct; options are shuffled when asked.
+const AUDIT_QS=[
+ ['Which of these is a type of asbestos?','Crocidolite','Crocodile','Night-light'],
+ ['Chrysotile is also known as...','White asbestos','Purple asbestos','A chrysanthemum'],
+ ['Crocidolite is also known as...','Blue asbestos','Green asbestos','Crocodile skin'],
+ ['Amosite is also known as...','Brown asbestos','Pink asbestos','A sea anemone'],
+ ['How many regulated types of asbestos are there?','Six','One','Sixty'],
+ ['Asbestos harms you when you...','Breathe in its fibres','Look at it','Say its name out loud'],
+ ['Can you see asbestos fibres floating in the air?','No, they are too small to see','Yes, they glow','Only on Tuesdays'],
+ ['What does ACM stand for?','Asbestos Containing Material','Awesome Chisel Move','Ask Craig, Maybe'],
+ ['Buildings built before which year are likely to contain asbestos?','2000','1066','2050'],
+ ['"Friable" asbestos means it...','Crumbles to powder by hand','Can be deep fried','Is very friendly'],
+ ['Which is the HIGHER risk?','Crumbly pipe lagging','Cement sheet in good condition','A sealed lunchbox'],
+ ['If a material cannot be sampled or accessed, you must...','Presume it contains asbestos','Presume it is fine','Lick it to check'],
+ ['About how many people die from asbestos disease in NZ each year?','About 220','About 2','None'],
+ ['Asbestos diseases usually show symptoms how long after exposure?','30 to 50 years','30 to 50 minutes','The next morning'],
+ ['Smoking plus asbestos exposure raises lung cancer risk by about...','50 times','Not at all','It cancels out'],
+ ['Which respirator filter gives high protection (99.95%)?','P3','A bandana','Holding your breath'],
+ ['To get a proper respirator seal you should be...','Clean shaven','Wearing a beard net','Sunburnt'],
+ ['Reusable respirators need a face fit test at least...','Every year','Once in your life','Never'],
+ ['Asbestos waste goes in...','200µm polythene bags, double wrapped','Paper shopping bags','The recycling bin'],
+ ['Which tool is safest to use near asbestos?','Hand tools','Angle grinder','Leaf blower'],
+ ['To clean up asbestos dust, use...','An H-type vacuum and wet wipes','A broom','A leaf blower'],
+ ['Disposable coveralls for asbestos work should be...','Type 5/6, never reused','Washed and reused','Denim'],
+ ['You find suspected asbestos during work. What now?','Stop, isolate the area, get it sampled','Keep going, but faster','Sweep it under the rug'],
+ ['Removing friable asbestos needs a...','Class A licensed removalist','Library card','Fishing licence'],
+ ['Before demolition or refurbishment you need...','An asbestos survey','A party','A bigger hammer'],
+ ['Where was New Zealand\'s only asbestos mine?','Upper Tākaka River valley','Under the Sky Tower','In the Beehive'],
+ ['Which law covers asbestos in NZ workplaces?','Health and Safety at Work (Asbestos) Regulations 2016','The Road Code','Rugby union rules'],
+ ['Every workplace with asbestos must have a written...','Asbestos management plan','Lunch roster','Christmas party plan'],
+];
+const AUDIT_CHANCE=0.15,AUDIT_MAX=3,AUDIT_PCT=0.10;
+let auditPlan=null,runAudits=0,usedAuditQs=[],siteAudit=0,auditAdj=0,halfPower=null,auditorT=0,auditCur=null;
+const AUDITOR=(()=>{const rows=["....WWWW....","...WWWWWW...","..wWWWWWWWW.","...SSSSS....","...SSSES....","...SSSSS....","....SSS.....","..NNNNNNN...",".SNGGGGGNCC.",".SNNNNNNNCPC","..NNNNNNNCC.","..BBBBBBB..."].concat(legs.idle);
+  const s=sprite(rows,{W:'#f4f4f0',w:'#c9ced6',S:'#d9a57a',E:'#1a1a2e',N:'#253746',G:'#84bd41',C:'#8a5a2a',P:'#ffffff',B:'#3a3f4a',K:'#2a1f1a'});return[flip(s),s]})();
 const CHARGE_MAX=40;
 const canCharge=()=>!!(boss&&arena&&arena.locked&&!arena.done&&p.ammo>0&&!mesoT&&state==='play');
 function superThrow(){if(p.ammo<=0)return;p.ammo--;p.attackT=12;p.attackKind='throw';const sv=role==='surveyor';
@@ -495,6 +556,8 @@ function genLevel(){
   const mF=WD.drops?[0.2,0.45,0.7,0.9]:lp>0||worldIdx()>1?[0.22,0.5,0.78]:[0.3,0.68];
   for(const f of mF)placeFloating('mask',len*f);
   Object.assign(p,{x:40,y:GY-16,vx:0,vy:0,inv:60,mask:0,vac:0,ammo:0,attackT:0,safe:{x:40,y:GY-16}});
+  siteAudit=0;auditAdj=0;halfPower=null;auditorT=0;auditPlan=null;
+  if(runVariants&&runAudits<AUDIT_MAX&&rnd()<AUDIT_CHANCE){const L=2500+stageN()*450+loopN()*400;auditPlan=worldIdx()>=2?{start:true}:{x:L*(0.3+rnd()*0.4)}}
   mult=1;cheatUsed=false;lostLife=false;lvlFrames=0;shed=null;cavs=[];siteStartScore=score;labBonus=0;props=[{kind:'sqnsign',x:150}];mesoT=0;mesoAt=rnd()<MESO_CHANCE?RIr(1200,3600):-1;
   camX=0;windT=0;darkT=0;spawn={drop:220,debris:260,ammo:400};
   banner={t:160,big:(worldIdx()+1)+'-'+st+'  '+WD.name,small:bossLvl?'Boss at the end of this site':(st===1&&lp>0?'Loop '+(lp+1)+': tougher crews':'Clear the site, reach the decon unit')};
@@ -611,11 +674,12 @@ const MAP={ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',Space:'j
 const postForm=document.getElementById('postForm');
 function activateCheat(){if(state!=='play'||mesoT)return;if(cheatUsed){banner={t:80,big:'CHEAT ALREADY USED',small:'One per site. Try again on the next one'};return}cheatUsed=true;mult=2;sfx.cheat();banner={t:110,big:'CHEAT: x2 POINTS',small:'For the rest of this site'}}
 function confirmRole(){role=ROLE_ORDER[selIdx]||'assessor';LS.set('fhRole',role);sfx.pick();startRun()}
-function startRun(){runVariants=Array.from({length:30},()=>Math.floor(rnd()*5));level=1;score=0;perfectPrev=false;deathCause='';p.hp=BASE_LIVES;p.ammo=0;lifeGained=false;genLevel();state='play'}
+function startRun(){runAudits=0;usedAuditQs=[];runVariants=Array.from({length:30},()=>Math.floor(rnd()*5));level=1;score=0;perfectPrev=false;deathCause='';p.hp=BASE_LIVES;p.ammo=0;lifeGained=false;genLevel();state='play'}
 function press(a){
   ensureAudio();
   if(a==='mute'){muted=!muted;LS.set('fhMute',muted?'1':'0');if(master)master.gain.value=muted?0:0.9;return}
   if(a==='music'){musicOn=!musicOn;LS.set('fhMusic',musicOn?'1':'0');if(musG)musG.gain.value=musicOn?0.45:0;return}
+  if(state==='audit'){if(auditCur&&auditCur.answered)closeAudit();return}
   if(a==='pause'){if(state==='play')state='pause';else if(state==='pause')state='play';return}
   if(state==='title'||state==='over'){if(a==='jump'||a==='start'){state='select';selIdx=Math.max(0,ROLE_ORDER.indexOf(role))}return}
   if(state==='select'){if(a==='jump'||a==='start'||a==='act')confirmRole();return}
@@ -627,6 +691,7 @@ function press(a){
 function release(a){if(a==='jump'||a==='left'||a==='right')keys[a]=false;if(a==='act'){keys.act=false;if(chargeT>0&&canCharge()){if(chargeT>=CHARGE_MAX)superThrow();else throwChisel()}chargeT=0}}
 addEventListener('keydown',e=>{
   if(!postForm.hidden||!document.getElementById('share').hidden)return;
+  if(state==='audit'){auditKey(e);return}
   const t=e.target;if(t&&t!==cv&&t.closest&&t.closest('input,textarea,select,button'))return;
   if(state==='play'&&e.key&&e.key.length===1){cheatBuf=(cheatBuf+e.key.toUpperCase()).slice(-6);if(cheatBuf==='CHISEL'){cheatBuf='';activateCheat()}}
   const a=MAP[e.code];if(!a)return;e.preventDefault();
@@ -640,7 +705,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&state==='p
 let touchMode=false,immersive=false;
 const screenEl=document.querySelector('.screen');
 // Mobile browser guards: no text selection, context menus, link previews, double-tap zoom or pull-to-refresh while playing.
-const typingArea=t=>!!(t&&t.closest&&t.closest('.post,.share,input,textarea,select'));
+const typingArea=t=>!!(t&&t.closest&&t.closest('.post,.share,.audit,input,textarea,select'));
 const guardDefault=e=>{if(!typingArea(e.target))e.preventDefault()};
 screenEl.addEventListener('contextmenu',guardDefault);
 screenEl.addEventListener('selectstart',guardDefault);
@@ -732,7 +797,43 @@ function hurt(from){
   if(p.hp<=0)gameOver();
 }
 function saveHi(){if(score>hi){hi=score;LS.set('fibreHunterHi',hi)}}
-function gameOver(){lastRun={score:Math.floor(score),code:ROLES[role].code,reached:reachedBase(),world:WD.name,tag:cleanTag(LS.get('fhTag')||''),team:cleanTeam(LS.get('fhTeam')||'')};LS.set('fhLastRun',JSON.stringify(lastRun));state='over';sfx.over();saveHi();playSong('title',7,'major',120,false);openPost(deathCause||'GAME OVER')}
+function auditPick(){let pool=AUDIT_QS.map((q,i)=>i).filter(i=>!usedAuditQs.includes(i));if(!pool.length){usedAuditQs=[];pool=AUDIT_QS.map((q,i)=>i)}const i=pool[Math.floor(rnd()*pool.length)];usedAuditQs.push(i);
+  const q=AUDIT_QS[i],opts=[{t:q[1],ok:true},{t:q[2],ok:false},{t:q[3],ok:false}];for(let k=opts.length-1;k>0;k--){const j=Math.floor(rnd()*(k+1));[opts[k],opts[j]]=[opts[j],opts[k]]}return{q:q[0],opts}}
+function openAudit(){
+  auditPlan.done=true;runAudits++;state='audit';keys.left=keys.right=keys.jump=false;chargeT=0;p.vx=0;auditorT=9999;
+  auditCur=auditPick();auditCur.answered=false;sfx.pick();
+  const el=$('audit');try{$('auditImg').src=AUDITOR[1].toDataURL()}catch(e){}
+  $('auditQ').textContent=auditCur.q;$('auditMsg').textContent='';$('auditMsg').className='amsg';
+  const box=$('auditOpts');box.textContent='';
+  auditCur.opts.forEach((o,i)=>{const b=document.createElement('button');b.type='button';const k=document.createElement('b');k.textContent=String.fromCharCode(65+i);const t=document.createElement('span');t.textContent=o.t;b.append(k,t);b.addEventListener('click',()=>answerAudit(i));box.appendChild(b)});
+  el.hidden=false;if(!touchMode)setTimeout(()=>{try{box.firstChild.focus({preventScroll:true})}catch(e){}},30);
+}
+function answerAudit(i){
+  if(!auditCur)return;if(auditCur.answered){closeAudit();return}
+  auditCur.answered=true;const ok=auditCur.opts[i].ok;siteAudit=ok?1:-1;
+  const btns=[...$('auditOpts').children];btns.forEach((b,j)=>{b.disabled=false;if(auditCur.opts[j].ok)b.classList.add('right');else if(j===i)b.classList.add('wrong')});
+  let extra='';
+  if(ok&&auditPlan&&auditPlan.start){const t=rnd()<0.5?'mask':'vac';halfPower={type:t,untilX:levelLen/2};extra=t==='mask'?' Plus a scuba mask until halfway.':' Plus a Super Vacuum until halfway.'}
+  const m=$('auditMsg');m.className='amsg '+(ok?'good':'bad');
+  m.textContent=(ok?'Correct! This site\'s points get +10%.':'Not quite. The answer is "'+auditCur.opts.find(o=>o.ok).t+'". This site\'s points get -10%.')+extra+' Press any key or tap to continue.';
+  if(ok){sfx.clear()}else sfx.oi();
+  auditCur.closeAt=performance.now()+400;
+  setTimeout(()=>{if(auditCur&&auditCur.answered&&state==='audit')closeAudit()},ok?3200:4800);
+}
+document.getElementById('audit').addEventListener('click',e=>{if(e.target.id==='audit'&&auditCur&&auditCur.answered)closeAudit()});
+function closeAudit(){if(!auditCur)return;if(performance.now()<(auditCur.closeAt||0))return;$('audit').hidden=true;auditCur=null;auditorT=80;if(state==='audit')state='play';try{cv.focus({preventScroll:true})}catch(e){}}
+function auditKey(e){
+  if(!auditCur)return;e.preventDefault();
+  if(auditCur.answered){if(!e.repeat)closeAudit();return}
+  const map={Digit1:0,Digit2:1,Digit3:2,Numpad1:0,Numpad2:1,Numpad3:2,KeyA:0,KeyB:1,KeyC:2};
+  if(e.code in map){answerAudit(map[e.code]);return}
+  const btns=[...$('auditOpts').children],cur=btns.indexOf(document.activeElement);
+  if(e.code==='ArrowDown'||e.code==='ArrowRight'){btns[(cur+1+btns.length)%btns.length].focus();return}
+  if(e.code==='ArrowUp'||e.code==='ArrowLeft'){btns[(cur-1+btns.length*2)%btns.length].focus();return}
+  if((e.code==='Enter'||e.code==='Space'||e.code==='KeyX')&&cur>=0&&!e.repeat)answerAudit(cur);
+}
+function settleAudit(){if(!siteAudit||shed)return 0;const earned=score-siteStartScore;const adj=Math.round(Math.max(0,earned)*AUDIT_PCT)*siteAudit;score=Math.max(0,score+adj);siteAudit=0;return adj}
+function gameOver(){settleAudit();lastRun={score:Math.floor(score),code:ROLES[role].code,reached:reachedBase(),world:WD.name,tag:cleanTag(LS.get('fhTag')||''),team:cleanTeam(LS.get('fhTeam')||'')};LS.set('fhLastRun',JSON.stringify(lastRun));state='over';sfx.over();saveHi();playSong('title',7,'major',120,false);openPost(deathCause||'GAME OVER')}
 
 /* ================= boss ================= */
 function startBoss(){
@@ -818,6 +919,9 @@ function update(){
   if(p.attackT>0)p.attackT--;if(p.inv>0)p.inv--;
   if(keys.act&&chargeT>0&&canCharge()){if(chargeT<CHARGE_MAX){chargeT++;if(chargeT%8===0)tone(260+chargeT*14,0.05,'square',0.03);if(chargeT===CHARGE_MAX)sfx.pick()}}else if(chargeT&&!canCharge())chargeT=0;
   lvlFrames++;
+  if(auditorT>0)auditorT--;
+  if(auditPlan&&!auditPlan.done&&!shed&&!boss&&!mesoT&&p.onGround&&(auditPlan.start?lvlFrames>=50:(p.x>=auditPlan.x&&(!arena||p.x<arena.x-40)))){openAudit();return}
+  if(halfPower){if(p.x<halfPower.untilX){if(halfPower.type==='mask')p.mask=Math.max(p.mask,30);else p.vac=Math.max(p.vac,30)}else halfPower=null}
   if(mesoAt>0&&lvlFrames>=mesoAt&&!mesoT){mesoT=1;p.mask=0;p.vac=0;keys.jump=false;banner={t:220,big:'DIAGNOSIS: MESOTHELIOMA',small:'Years of fibre exposure have caught up with you'};sfx.over();playSong('meso',4040,'minor',66,false)}
   if(mesoT){mesoT++;p.inv=9999;if(mesoT%50===0){sfx.cough();floaters.push({x:p.x-8,y:p.y-12,txt:'*cough*',t:40,col:'#c8cdd6'})}if(mesoT>=320){deathCause='MESOTHELIOMA';p.inv=0;gameOver();return}}
   if(p.vac>0){p.vac--;if(frameN%2===0){const a=rnd()*Math.PI*2,r=40+rnd()*70;parts.push({x:p.x+5+Math.cos(a)*r,y:p.y+8+Math.sin(a)*r*0.6,vx:-Math.cos(a)*r/16,vy:-Math.sin(a)*r*0.6/16,t:16,col:['#e9e4d6','#cfcabb','#f5c400'][frameN%3],g:0})}if(frameN%9===0)sfx.hum()}
@@ -903,7 +1007,7 @@ function update(){
   // goal
   if(!shed&&p.x+p.w>decon.x+30){
     const allFound=!enemies.some(e=>e.type==='asb');labBonus=role==='labtech'&&allFound?Math.round((score-siteStartScore)*0.10):0;score+=labBonus;
-    perfectPrev=!lostLife&&allFound;clearBonus=Math.round((Math.min(p.hp,3)*500+Math.min(p.ammo,AMMO_BONUS_CAP)*25+level*1000)*mult);score+=clearBonus;sfx.clear();saveHi();
+    perfectPrev=!lostLife&&allFound;clearBonus=Math.round((Math.min(p.hp,3)*500+Math.min(p.ammo,AMMO_BONUS_CAP)*25+level*1000)*mult);score+=clearBonus;auditAdj=settleAudit();sfx.clear();saveHi();
     lifeGained=false;if(perfectPrev&&p.hp<MAX_LIVES){p.hp++;lifeGained=true;setTimeout(()=>sfx.pick(),500)}
     state=stageN()===3?'worldclear':'clear';
     if(state==='worldclear')autoPost();
@@ -1192,8 +1296,9 @@ function hud(){
   if(arena){const ax=Math.round(W*arena.x/goal);rect(ax,15,2,4,'#ff3b4f')}
   let by=22;const bar=(lbl,t,max,col)=>{rect(W/2-50,by,100,12,'rgba(8,9,14,0.7)');rect(W/2-48,by+8,Math.round(96*Math.min(1,t/max)),2,col);text(lbl+' '+(t/60).toFixed(1)+'s',W/2,by,col,6,'center');by+=14};
   if(shed)bar('BONUS TIME',shed.t,SHED_FRAMES,'#ff7a1a');
-  if(p.mask>0)bar('SCUBA',p.mask,300,'#38e0ff');
-  if(p.vac>0)bar('VACUUM',p.vac,VAC_FRAMES,'#f5c400');
+  const hbar=(lbl,col)=>{const r=Math.max(0,Math.min(1,(halfPower.untilX-p.x)/halfPower.untilX));rect(W/2-50,by,100,12,'rgba(8,9,14,0.7)');rect(W/2-48,by+8,Math.round(96*r),2,col);text(lbl,W/2,by,col,6,'center');by+=14};
+  if(halfPower&&halfPower.type==='mask')hbar('SCUBA TO HALFWAY','#38e0ff');else if(p.mask>0)bar('SCUBA',p.mask,300,'#38e0ff');
+  if(halfPower&&halfPower.type==='vac')hbar('VACUUM TO HALFWAY','#f5c400');else if(p.vac>0)bar('VACUUM',p.vac,VAC_FRAMES,'#f5c400');
   if(boss){rect(40,H-18,W-80,12,'rgba(8,9,14,0.8)');rect(42,H-9,W-84,3,'#3a1a20');rect(42,H-9,Math.round((W-84)*Math.max(0,boss.hp)/boss.max),3,WD.boss.filt);text(WD.boss.name,W/2,H-17,'#ebe6d6',6,'center')}
   const flags=(muted?'MUTED ':'')+(!musicOn&&!muted?'MUSIC OFF':'');if(flags)text(flags.trim(),W-6,22,'#6b7080',6,'right');
   if(banner&&banner.t>0&&state==='play'){const a=Math.min(1,banner.t/30);ctx.globalAlpha=a;rect(0,70,W,40,'rgba(8,9,14,0.8)');rect(0,70,W,2,banner.boss?'#ff3b4f':'#f5c400');rect(0,108,W,2,banner.boss?'#ff3b4f':'#f5c400');
@@ -1251,6 +1356,7 @@ function draw(){
   if(boss)drawBoss();
   for(const h of hazards)drawHazard(h);
   for(const s of shots){ctx.save();ctx.translate(Math.round(s.x+5),Math.round(s.y+1));if(s.sup){ctx.globalAlpha=0.5;rect(-9,-5,20,10,'#ff6a1a');rect(-6,-3,14,6,'#ffd04a');ctx.globalAlpha=1;ctx.scale(1.6,1.6)}ctx.rotate(s.rot*Math.sign(s.vx));drawChisel(-6,-1,1);ctx.restore()}
+  if(auditorT>0){const ax=p.x+22+(auditorT<80?(80-auditorT)*1.2:0),ay=GY-16;ctx.globalAlpha=auditorT<80?auditorT/80:1;ctx.drawImage(AUDITOR[auditorT<80?1:0],Math.round(ax),ay);if(state==='audit'&&frameN%40<26)text('?',ax+3,ay-10,'#84bd41',8);ctx.globalAlpha=1}
   drawPlayer();drawCharge();
   for(const q of parts){ctx.globalAlpha=Math.min(1,q.t/20);if(q.flame){rect(q.x,q.y,q.s,q.s,q.t>24?'#fff2a8':q.t>16?'#ffb000':q.t>9?'#ff6a1a':'#c8301a');continue}if(q.streak)rect(q.x,q.y,8,1,q.col);else rect(q.x,q.y,q.fibre?1:2,2,q.col)}ctx.globalAlpha=1;
   for(const f of floaters)text(f.txt,f.x,f.y,f.col,6);
@@ -1263,10 +1369,10 @@ function draw(){
   if(mesoT){ctx.globalAlpha=Math.min(0.5,mesoT/500);rect(0,0,W,H,'#14161c');ctx.globalAlpha=1}
   hud();
   if(state==='pause')panel([['PAUSED','#f5c400',12],[touchMode?'TAP the screen to resume':'P or SPACE to resume','#9aa0ae',6],['N music  ·  M mute','#9aa0ae',6]],72);
-  if(state==='clear')panel([['SITE CLEARED','#f5c400',12],...(perfectPrev?[['PERFECT! No asbestos missed, no lives lost','#f5c400',6],[lifeGained?'EXTRA LIFE! Plus a Super Vacuum next site':'Super Vacuum ready (max 5 lives already)','#f5c400',6]]:[['Clearance certificate issued by SQN.','#ebe6d6',6]]),...(labBonus?[['LAB TECH: ALL ASBESTOS FOUND +'+labBonus,'#5bd17a',6]]:[]),['Bonus +'+clearBonus,'#38e0ff',8],['Score '+score,'#ebe6d6',8],[(touchMode?'TAP':'SPACE')+' for site '+(worldIdx()+1)+'-'+(stageN()+1),'#ff7a1a',6]],52);
+  if(state==='clear')panel([['SITE CLEARED','#f5c400',12],...(perfectPrev?[['PERFECT! No asbestos missed, no lives lost','#f5c400',6],[lifeGained?'EXTRA LIFE! Plus a Super Vacuum next site':'Super Vacuum ready (max 5 lives already)','#f5c400',6]]:[['Clearance certificate issued by SQN.','#ebe6d6',6]]),...(labBonus?[['LAB TECH: ALL ASBESTOS FOUND +'+labBonus,'#5bd17a',6]]:[]),...(auditAdj?[[auditAdj>0?'SITE AUDIT PASSED +'+auditAdj:'SITE AUDIT FAILED '+auditAdj,auditAdj>0?'#84bd41':'#ff5a6a',6]]:[]),['Bonus +'+clearBonus,'#38e0ff',8],['Score '+score,'#ebe6d6',8],[(touchMode?'TAP':'SPACE')+' for site '+(worldIdx()+1)+'-'+(stageN()+1),'#ff7a1a',6]],52);
   if(state==='sheddone')panel([['BONUS ROUND OVER','#f5c400',12],['Free round: no lives lost','#9aa0ae',6],['Openings '+shed.opened+' of '+cavs.length+'   Asbestos '+shed.smashed+' of '+shed.total,'#ebe6d6',6],...(shed.all?[['EVERY PIECE! +'+shed.all,'#f5c400',6]]:[]),...(shed.lab?[['LAB TECH: ALL ASBESTOS FOUND +'+shed.lab,'#5bd17a',6]]:[]),['Score '+score,'#ebe6d6',8],[(touchMode?'TAP':'SPACE')+' for world 3','#ff7a1a',6]],52);
   if(state==='worldclear'){const nw=WORLDS[(worldIdx()+1)%5],looped=worldIdx()===4;
-    panel([[looped?'ALL 5 WORLDS CLEARED':'WORLD CLEARED','#f5c400',looped?10:12],['Bonus +'+clearBonus+'   Score '+score,'#ebe6d6',6],...(labBonus?[['LAB TECH: ALL ASBESTOS FOUND +'+labBonus,'#5bd17a',6]]:[]),...(perfectPrev?[['PERFECT! '+(lifeGained?'Extra life + ':'')+'Super Vacuum next site','#f5c400',6]]:[]),[looped?'The crews are back, and tougher':worldIdx()===1?'First, a bonus round:':'Next world:','#9aa0ae',6],[worldIdx()===1?'THE SMASH-IT-UP SHED':nw.name,'#38e0ff',8],[(touchMode?'TAP':'SPACE')+' to continue','#ff7a1a',6]],52)}
+    panel([[looped?'ALL 5 WORLDS CLEARED':'WORLD CLEARED','#f5c400',looped?10:12],['Bonus +'+clearBonus+'   Score '+score,'#ebe6d6',6],...(labBonus?[['LAB TECH: ALL ASBESTOS FOUND +'+labBonus,'#5bd17a',6]]:[]),...(auditAdj?[[auditAdj>0?'SITE AUDIT PASSED +'+auditAdj:'SITE AUDIT FAILED '+auditAdj,auditAdj>0?'#84bd41':'#ff5a6a',6]]:[]),...(perfectPrev?[['PERFECT! '+(lifeGained?'Extra life + ':'')+'Super Vacuum next site','#f5c400',6]]:[]),[looped?'The crews are back, and tougher':worldIdx()===1?'First, a bonus round:':'Next world:','#9aa0ae',6],[worldIdx()===1?'THE SMASH-IT-UP SHED':nw.name,'#38e0ff',8],[(touchMode?'TAP':'SPACE')+' to continue','#ff7a1a',6]],52)}
   if(state==='over'&&postForm.hidden)panel([[deathCause||'GAME OVER','#ff3b4f',deathCause?10:12],...(deathCause?[['Asbestos kills. Always wear your RPE.','#9aa0ae',6]]:[]),['Reached '+(worldIdx()+1)+'-'+stageN()+' '+WD.name,'#ebe6d6',6],['Score '+score+'   Best '+hi,'#ebe6d6',8],[(touchMode?'TAP':'SPACE')+' to try again','#ff7a1a',6]],60);
 }
 
