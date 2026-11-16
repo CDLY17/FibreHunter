@@ -474,6 +474,8 @@ setInterval(musTick,30);
 
 /* ================= state ================= */
 let state='title',level=1,score=0,hi=+LS.get('fibreHunterHi')||0,frameN=0;
+// One-off: the team board was halved on 17 Nov 2026, so halve this device's saved best (and last run) to match.
+if(!LS.get('fhHalved1')){if(hi>0){hi=Math.round(hi*0.5);LS.set('fibreHunterHi',hi)}try{const lr=JSON.parse(LS.get('fhLastRun')||'null');if(lr&&lr.score){lr.score=Math.round(lr.score*0.5);LS.set('fhLastRun',JSON.stringify(lr))}}catch(e){}LS.set('fhHalved1','1')}
 let solids=[],enemies=[],pickups=[],shots=[],parts=[],floaters=[],hazards=[],npcs=[];
 let decon,levelLen=0,worldEnd=0,camX=0,clearBonus=0,flash=0,shake=0,arena=null,boss=null,banner=null,windT=0,spawn={drop:200,debris:240,ammo:400},bossMaskGiven=false;
 let WD=WORLDS[0];
