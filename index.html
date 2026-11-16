@@ -103,11 +103,12 @@ ol.worlds b{color:var(--hazard);font-weight:normal}
 .tabs button[aria-selected="true"]{border-color:var(--hazard);color:var(--hazard)}
 .tabs button:focus-visible{outline:2px solid var(--scuba)}
 .blist{list-style:none;margin:0;padding:0;display:grid;gap:4px;max-height:420px;overflow-y:auto}
-.blist li{display:grid;grid-template-columns:2.6em minmax(0,1fr) auto;gap:10px;align-items:baseline;background:var(--panel2);border-radius:4px;padding:6px 10px}
+.blist li{display:grid;grid-template-columns:2.6em minmax(0,1fr) auto;gap:10px;align-items:center;background:var(--panel2);border-radius:4px;padding:6px 10px}
 .blist li.me{box-shadow:inset 3px 0 0 var(--scuba)}
 .blist .rk{font-family:var(--f-display);font-size:11px;color:var(--muted)}
 .blist li:nth-child(1) .rk{color:var(--hazard)}
 .blist .who{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.blist .who .av{width:24px;height:32px;image-rendering:pixelated;vertical-align:middle;margin-right:10px}
 .blist .who b{font-family:var(--f-display);font-size:11px;font-weight:normal;color:var(--ink)}
 .blist .who span{color:var(--muted);margin-left:8px}
 .blist .pts{font-family:var(--f-display);font-size:11px;color:var(--ink);font-variant-numeric:tabular-nums;text-align:right}
@@ -235,10 +236,13 @@ const top=["....YYYY....","...YYYYYY...","..yYYYYYYYY.","...SSSSS....","...SSSES
 const legs={idle:["..BB...BB...","..BB...BB...","..BB...BB...",".KKK...KKK.."],r1:["..BB..BB....",".BB....BB...","BB......BB..","KK.......KK."],r2:["...BBBB.....","....BB......","....BB......","...KKK......"],jump:["..BB...BB...",".BB.....BB..",".KK.....KK..","............"]};
 const ROLE_ORDER=['labtech','surveyor','assessor'];
 const ROLES={
-  labtech:{name:'LAB TECH',code:'L',perks:['+10% SITE BONUS','WHEN YOU FIND','ALL THE ASBESTOS'],pal:Object.assign({},pPal,{Y:'#2c6fd1',y:'#1f4f99',O:'#f4f6f8',R:'#9cc7e8',B:'#4a5060'})},
+  labtech:{name:'LAB TECH',code:'L',perks:['+10% SITE BONUS','WHEN YOU FIND','ALL THE ASBESTOS'],pal:Object.assign({},pPal,{S:'#c99a74',Y:'#2c6fd1',y:'#1f4f99',O:'#f4f6f8',R:'#9cc7e8',B:'#4a5060'})},
   surveyor:{name:'SURVEYOR',code:'S',perks:['LONG CHISEL THROW','x2 ASBESTOS PTS','IN A SCUBA MASK'],pal:Object.assign({},pPal,{Y:'#f2f2f2',y:'#c9ced6',O:'#c6f03a',R:'#e8eef4',B:'#3a3f4a'})},
-  assessor:{name:'ASSESSOR',code:'A',perks:['ANGRY CONTRACTORS','2 HITS, FASTER,','BUT +5% POINTS'],pal:pPal}};
-const PLR={};for(const r of ROLE_ORDER){PLR[r]={};for(const k in legs){const s=sprite(top.concat(legs[k]),ROLES[r].pal);PLR[r][k]=[flip(s),s]}}
+  assessor:{name:'ASSESSOR',code:'A',perks:['ANGRY CONTRACTORS','2 HITS, FASTER,','BUT +5% POINTS'],pal:Object.assign({},pPal,{H:'#5a3420',h:'#7a4a2c',L:'#c94a5a'}),
+    top:["....YYYY....","...YYYYYY...","..yYYYYYYYY.","..HSSSSS....",".HhSSSES....",".HHSSSLS....",".H..SSS.....","H.OOOOOOO...",".SORRRRROS..",".SOOOOOOOS..","..OOOOOOO...","..BBBBBBB..."]}};
+const PLR={};for(const r of ROLE_ORDER){PLR[r]={};for(const k in legs){const s=sprite((ROLES[r].top||top).concat(legs[k]),ROLES[r].pal);PLR[r][k]=[flip(s),s]}}
+const CLASSIC_HERO=sprite(top.concat(legs.idle),pPal);
+const AVATARS={};function avatarSrc(code){if(code in AVATARS)return AVATARS[code];let src=null;try{const r={L:'labtech',S:'surveyor',A:'assessor'}[code];src=(r?PLR[r].idle[1]:CLASSIC_HERO).toDataURL()}catch(e){}return AVATARS[code]=src}
 let role=ROLES[LS.get('fhRole')]?LS.get('fhRole'):'assessor';
 let selIdx=ROLE_ORDER.indexOf(role);
 const mTop=["......WWWW......","....WWWWWWWW....","...WWWWWWWWWW...","...WKKKWWKKKW...","...WKCKWWKCKW...","...WWWWWWWWWW...",".PP.WDDDDDDW.PP.","PPPpDDDDDDDDpPPP","PPPpDDDDDDDDpPPP",".PP..DDDDDD..PP.","..WWWWWWWWWWWW..",".WWWWWWWWWWWWWW.","WWTTWWWWWWWWTTWW","WW.WWWWWWWWWW.WW","ww.WWWWWWWWWW.ww","HH.wwwwwwwwww.HH"];
@@ -1140,9 +1144,9 @@ function renderBoard(){
   if(board.tab==='players'){
     docs.slice(0,50).forEach((d,i)=>{const li=document.createElement('li');if(d.id===board.uid)li.className='me';
       const rk=document.createElement('span');rk.className='rk';rk.textContent='#'+(i+1);
-      const who=document.createElement('span');who.className='who';const b=document.createElement('b');b.textContent=cleanTag(d.tag)+(d.id===board.uid?' (you)':'');who.appendChild(b);
+      const who=document.createElement('span');who.className='who';const code=String(d.reached||'').split(' ')[1]||'';const av=avatarSrc(code);if(av){const im=document.createElement('img');im.className='av';im.src=av;im.alt='';im.width=24;im.height=32;who.appendChild(im)}const b=document.createElement('b');b.textContent=cleanTag(d.tag)+(d.id===board.uid?' (you)':'');who.appendChild(b);
       if(cleanTeam(d.team)){const t=document.createElement('span');t.textContent=cleanTeam(d.team);who.appendChild(t)}
-      const pts=document.createElement('span');pts.className='pts';pts.textContent=(d.best|0).toLocaleString();const sm=document.createElement('small');const rp=String(d.reached||'1-1').split(' '),rn={L:'Lab tech',S:'Surveyor',A:'Assessor'}[rp[1]];sm.textContent=(rn?rn+' · ':'')+'reached '+rp[0]+(d.runs?' · '+d.runs+' run'+(d.runs>1?'s':''):'');pts.appendChild(sm);
+      const pts=document.createElement('span');pts.className='pts';pts.textContent=(d.best|0).toLocaleString();const sm=document.createElement('small');const rp=String(d.reached||'1-1').split(' '),rn={L:'Lab tech',S:'Surveyor',A:'Assessor'}[rp[1]]||'Original hero';sm.textContent=(rn?rn+' · ':'')+'reached '+rp[0]+(d.runs?' · '+d.runs+' run'+(d.runs>1?'s':''):'');pts.appendChild(sm);
       li.append(rk,who,pts);list.appendChild(li)});
     note.textContent="Each player's best run counts. Your entry is tied to this device and browser.";
   } else {
