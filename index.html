@@ -1340,7 +1340,13 @@ function drawPlayer(){
   if(p.mask>0){rect(X+3,Y+3,6,4,'#1b1b24');rect(X+4,Y+4,4,2,'#38e0ff');rect(p.face>0?X+3:X+8,Y-1,1,5,'#f5c400')}
   if(p.vac>0){const bx=p.face>0?X-3:X+10;rect(bx,Y+7,4,7,'#f5c400');rect(bx,Y+7,4,1,'#ffe066');const nx=p.face>0?X+11:X-6;rect(p.face>0?X+9:X-1,Y+11,3,1,'#3a3d47');rect(nx,Y+10,5,3,'#3a3d47');if(frameN%6<3)rect(p.face>0?nx+5:nx-1,Y+11,1,1,'#e9e4d6');if(p.vac<120&&frameN%10<5){ctx.globalAlpha=0.5;rect(X-2,Y-2,16,20,'#f5c400');ctx.globalAlpha=1}}
   const hx=p.face>0?X+9:X-1,hy=Y+8;
-  if(p.attackT>0&&p.attackKind==='stab'){if(role==='labtech'){if(p.face>0){drawSpray(hx+1,hy+1,1);drawWater(hx+11,hy-2,p.attackT>4?14:7,1)}else{drawSpray(hx-11,hy+1,-1);drawWater(hx-10,hy-2,p.attackT>4?14:7,-1)}}else{const ext=p.attackT>10?2:p.attackT>4?9:4;if(p.face>0)drawTool(hx+ext-2,hy,1);else drawTool(hx-ext-9,hy,-1)}}
+  if(p.attackT>0&&p.attackKind==='stab'&&role==='surveyor'){
+    // Hammer swing: raised overhead, then down in an arc like hitting a nail
+    const k=Math.min(1,(14-p.attackT)/8),ang=(-115+140*k*k)*Math.PI/180,f=p.face,px=f>0?hx+1:hx+1,py=hy+1;
+    if(k>0.25&&k<1)for(let i=1;i<4;i++){const a2=ang-i*0.32;ctx.globalAlpha=0.35-i*0.08;rect(Math.round(px+f*Math.cos(a2)*11),Math.round(py+Math.sin(a2)*11),2,2,'#e8eef4')}
+    ctx.globalAlpha=1;ctx.save();ctx.translate(px,py);ctx.scale(f,1);ctx.rotate(ang);drawHammer(0,-2,1);ctx.restore();
+    if(k>=1&&p.attackT>3){const ix=Math.round(px+f*Math.cos(ang)*11),iy=Math.round(py+Math.sin(ang)*11);rect(ix-1,iy-3,1,2,'#ffd04a');rect(ix+2,iy-2,2,1,'#ffd04a');rect(ix-3,iy,2,1,'#ffd04a')}}
+  else if(p.attackT>0&&p.attackKind==='stab'){if(role==='labtech'){if(p.face>0){drawSpray(hx+1,hy+1,1);drawWater(hx+11,hy-2,p.attackT>4?14:7,1)}else{drawSpray(hx-11,hy+1,-1);drawWater(hx-10,hy-2,p.attackT>4?14:7,-1)}}else{const ext=p.attackT>10?2:p.attackT>4?9:4;if(p.face>0)drawTool(hx+ext-2,hy,1);else drawTool(hx-ext-9,hy,-1)}}
   else if(p.attackT>0&&role==='labtech'){const L=p.attackT>6?30:18;if(p.face>0){drawSpray(hx+1,hy+1,1);drawWater(hx+11,hy-2,L,1)}else{drawSpray(hx-11,hy+1,-1);drawWater(hx-10,hy-2,L,-1)}}
   else if(p.attackT>0)rect(hx,hy-2,2,2,'#e8b48a');
   else if(p.onGround){if(p.face>0)drawTool(hx-3,hy+1,1);else drawTool(hx-7,hy+1,-1)}
