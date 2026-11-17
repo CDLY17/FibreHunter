@@ -282,7 +282,7 @@ ol.worlds b{color:var(--hazard);font-weight:normal}
         <dt><span class="sw" style="background:#ff4fa0"></span>Removal monster</dt><dd>Two hits up close or one thrown · 250</dd>
         <dt><span class="sw" style="background:#9cc3e6"></span>Bystanders</dt><dd>Leave them alone. Hitting one costs 200.</dd>
         <dt><span class="sw" style="background:#38e0ff"></span>Scuba mask</dt><dd>5 seconds of immunity. Anything hostile you touch is destroyed.</dd>
-        <dt><span class="sw" style="background:#84bd41"></span>Site audit</dt><dd>The SQN auditor runs out to meet you early on the first site of every world. Answer right for +10% on that site's points, wrong for −10%. In worlds 3 to 5 a right answer also gives a scuba mask or Super Vacuum until halfway.</dd><dt><span class="sw" style="background:#2c6fd1"></span>Hospital tower</dt><dd>Sites 3-1 and 3-2 are multi-storey: clear each floor, then take the stairs up and head back the other way. The decon unit is on the top floor.</dd><dt><span class="sw" style="background:#5bd17a"></span>Continue</dt><dd>Once a game, when you run out of lives, answer a harder awareness question correctly for 3 extra lives.</dd>
+        <dt><span class="sw" style="background:#84bd41"></span>Site audit</dt><dd>The SQN auditor runs out to meet you early on the first site of every world. Answer right for +10% on that site's points, wrong for −10%. In worlds 3 to 5 a right answer also gives a scuba mask or Super Vacuum until halfway.</dd><dt><span class="sw" style="background:#2c6fd1"></span>Hospital tower</dt><dd>Site 3-1 is a five-storey hospital: clear each floor, then take the stairs up and head back the other way. The decon unit is on the top floor.</dd><dt><span class="sw" style="background:#5bd17a"></span>Continue</dt><dd>Once a game, when you run out of lives, answer a harder awareness question correctly for 3 extra lives.</dd>
         <dt><span class="sw" style="background:#ff3b4f"></span>Lives</dt><dd>Start with 4. A perfect site (no asbestos missed, no lives lost) earns an extra life, up to 5.</dd>
         <dt><span class="sw" style="background:#ff7a1a"></span>Tool pickup</dt><dd>+5 chisels, hammers or sprays. Stockpile up to 20, and you start each site with none.</dd>
       </dl>
@@ -547,6 +547,7 @@ let mult=1,cheatUsed=false,cheatBuf='',cheatTaps=[],lostLife=false,perfectPrev=f
 const MASK_BONUS=72,BASE_LIVES=4,MAX_LIVES=5,MAX_AMMO=20,CHISEL_PICKUP=5,AMMO_BONUS_CAP=10,INV_HIT=135,INV_FALL=150,ANGRY_BONUS=1.25,VAC_FRAMES=600,VAC_R=120,MESO_CHANCE=0.07;
 function addPts(n){const v=Math.round(n*mult);score+=v;return v}
 const xTag=()=>mult>1?' x'+mult:'';
+const worldIdx2=l=>Math.floor((l-1)/3)%5;
 const worldIdx=()=>Math.floor((level-1)/3)%5,stageN=()=>(level-1)%3+1,loopN=()=>Math.floor((level-1)/15);
 const p={x:40,y:GY-16,w:10,h:16,vx:0,vy:0,face:1,onGround:false,coyote:0,jumpBuf:0,attackT:0,attackKind:'stab',hitSet:null,inv:0,mask:0,vac:0,ammo:0,hp:3,anim:0,safe:{x:40,y:GY-16}};
 
@@ -561,12 +562,12 @@ function addPick(type,x,y,float=true){pickups.push({type,x,y,w:12,h:12,vx:0,vy:0
 // ===== Vertical hospital sites: climb the stairs floor by floor =====
 const FH=96,FW=1200,STW=128,TOWER_NAMES=['GROUND: EMERGENCY & X-RAY','LEVEL 1: WARDS','LEVEL 2: SURGICAL','LEVEL 3: LABS & PHARMACY','LEVEL 4: PLANT ROOM'];
 let tower=null,camY=0;
-const towerFloors=()=>WORLDS[worldIdx()].key==='hosp'&&stageN()<3?(stageN()===1?4:5):0;
+const towerFloors=()=>WORLDS[worldIdx()].key==='hosp'&&stageN()===1?5:0;
 const floorY=k=>GY-k*FH;
 function curFloor(){return tower?Math.max(0,Math.min(tower.N-1,Math.floor((GY-(p.y+p.h)+30)/FH))):0}
 function progress(){if(!tower)return Math.max(0,Math.min(1,p.x/(decon.x+30)));const k=curFloor(),d=k%2===0?1:-1,a=d>0?p.x/FW:1-p.x/FW;return Math.max(0,Math.min(1,(k+a)/tower.N))}
 function genTower(N){
-  tower={N,stairs:[],cur:0};
+  tower={N,stairs:[],cur:0};const tv=runVariants?runVariants[(level-1)%runVariants.length]:0;
   levelLen=FW*N;const fseed=s=>({seed:seedFn()*1e5|0,...s});
   for(let k=0;k<N;k++){const fy=floorY(k),dir=k%2===0?1:-1;FLOOR=fy;
     if(k===0)solids.push({x:-40,y:GY,w:FW+80,h:H-GY+40,kind:'ground',seed:seedFn()*1e5|0});
@@ -576,10 +577,10 @@ function genTower(N){
       for(let i=0;i<16;i++){const sx=dir>0?x0+i*8:x0+STW-8-i*8,top=fy-(i+1)*6;solids.push({x:sx,y:top,w:8,h:fy-top,kind:'step',stair:true,dir,i,seed:0})}
       props.push({kind:'stairsign',x:dir>0?x0-34:x0+STW+6,y:fy,dir})}
     props.push({kind:'flsign',x:FW/2-24,y:fy,k});
-    {const zx=k===0?0:150,zw=k===0?FW-200:FW-350,n0=[solids.length,enemies.length,pickups.length,npcs.length];populate({x:zx,w:zw},k===0,false);
+    {const zx=150,zw=FW-350,n0=[solids.length,enemies.length,pickups.length,npcs.length];seedFn=mulberry(880000+loopN()*17+((k+tv)%N)*7919);populate({x:zx,w:zw},false,false);
      // floors walked right-to-left get their layout mirrored so step-ups face the way you arrive
      if(dir<0){const lo=zx+50,hi=zx+zw-70,m=o=>{o.x=lo+hi-(o.x+o.w)};solids.slice(n0[0]).forEach(m);enemies.slice(n0[1]).forEach(m);pickups.slice(n0[2]).forEach(m);npcs.slice(n0[3]).forEach(m)}}
-    placeFloating('mask',k===0?FW*0.5:FW*(0.3+0.4*seedFn()));
+    placeFloating('mask',FW*(0.3+0.4*seedFn()));
   }
   solids.push({x:-40,y:floorY(N)+0,w:FW+80,h:8,kind:'slab',roof:true,seed:3});
   FLOOR=GY;
@@ -592,7 +593,7 @@ function genLevel(){
   solids=[];enemies=[];pickups=[];shots=[];parts=[];floaters=[];hazards=[];npcs=[];boss=null;bossMaskGiven=false;
   const len=2500+st*450+lp*400;levelLen=len;
   let x=-40,first=true;tower=null;camY=0;FLOOR=GY;props=[];
-  const TN=towerFloors();if(TN){seedFn=mulberry(880000+st*131+lp*17);genTower(TN)}else
+  const TN=towerFloors();if(TN){seedFn=mulberry(880000+lp*17);genTower(TN)}else
   while(true){
     let segLen=first?440:RI(320,560);
     const final=x+segLen>=len-200;
@@ -756,19 +757,41 @@ const solidAt=(x,y)=>solids.some(s=>x>=s.x&&x<s.x+s.w&&y>=s.y&&y<s.y+s.h);
 
 /* ================= input ================= */
 const keys={left:false,right:false,jump:false};
-const MAP={ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',Space:'jump',ArrowUp:'jump',KeyW:'jump',KeyX:'act',KeyK:'act',KeyP:'pause',Escape:'pause',KeyM:'mute',KeyN:'music',Enter:'start'};
+const MAP={ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',Space:'jump',ArrowUp:'jump',KeyW:'jump',KeyX:'act',KeyK:'act',KeyP:'pause',KeyT:'practice',Escape:'pause',KeyM:'mute',KeyN:'music',Enter:'start'};
 const postForm=document.getElementById('postForm');
 function activateCheat(){return;/* cheat removed */if(state!=='play'||mesoT)return;if(cheatUsed){banner={t:80,big:'CHEAT ALREADY USED',small:'One per site. Try again on the next one'};return}cheatUsed=true;mult=2;sfx.cheat();banner={t:110,big:'CHEAT: x2 POINTS',small:'For the rest of this site'}}
 function confirmRole(){role=ROLE_ORDER[selIdx]||'assessor';LS.set('fhRole',role);sfx.pick();startRun()}
-function startRun(){runAudits=0;contUsed=false;auditRun=null;usedAuditQs=[];runVariants=Array.from({length:30},()=>Math.floor(rnd()*5));level=1;score=0;perfectPrev=false;deathCause='';p.hp=BASE_LIVES;p.ammo=0;lifeGained=false;genLevel();state='play'}
+let practice=0,pickW=0,pickS=0;
+function startPractice(){runAudits=0;contUsed=false;auditRun=null;usedAuditQs=[];runVariants=Array.from({length:30},()=>Math.floor(rnd()*5));level=practice;score=0;perfectPrev=false;deathCause='';p.hp=BASE_LIVES;p.ammo=0;lifeGained=false;genLevel();banner.small='PRACTICE: score not posted';state='play'}
+function pickKey(code){
+  if(code==='ArrowLeft'||code==='KeyA'){pickS=(pickS+2)%3;sfx.clink()}else if(code==='ArrowRight'||code==='KeyD'){pickS=(pickS+1)%3;sfx.clink()}
+  else if(code==='ArrowUp'||code==='KeyW'){pickW=(pickW+4)%5;sfx.clink()}else if(code==='ArrowDown'||code==='KeyS'){pickW=(pickW+1)%5;sfx.clink()}
+  else if(code==='Space'||code==='Enter'||code==='KeyX'){practice=pickW*3+pickS+1;sfx.pick();state='select';selIdx=Math.max(0,ROLE_ORDER.indexOf(role))}
+  else if(code==='Escape'||code==='KeyT'){practice=0;state='title'}}
+const PICK={x0:80,y0:34,cw:92,ch:26,gx:4,gy:4};
+function pickScreen(){
+  WD=WORLDS[pickW];background();rect(0,0,W,H,'rgba(8,9,14,0.72)');
+  text('PRACTICE A SITE',W/2,10,'#f5c400',10,'center');
+  WORLDS.forEach((w,i)=>{const y=PICK.y0+i*(PICK.ch+PICK.gy);text(w.name.split(' ')[0],PICK.x0-6,y+9,i===pickW?'#f5c400':'#9aa0ae',6,'right');
+    for(let j=0;j<3;j++){const x=PICK.x0+j*(PICK.cw+PICK.gx),on=i===pickW&&j===pickS;rect(x,y,PICK.cw,PICK.ch,on?'rgba(60,52,18,0.95)':'rgba(20,22,28,0.92)');
+      const bc=on?'#f5c400':'#3a3f4a';rect(x,y,PICK.cw,1,bc);rect(x,y+PICK.ch-1,PICK.cw,1,bc);rect(x,y,1,PICK.ch,bc);rect(x+PICK.cw-1,y,1,PICK.ch,bc);
+      text((i+1)+'-'+(j+1),x+PICK.cw/2,y+5,on?'#f5c400':'#ebe6d6',8,'center');
+      text(j===2?'BOSS':(w.key==='hosp'&&j===0?'TOWER':'SITE'),x+PICK.cw/2,y+16,j===2?'#ff5a6a':(w.key==='hosp'&&j===0?'#38e0ff':'#9aa0ae'),6,'center')}});
+  if(Math.floor(frameN/30)%2)text(touchMode?'TAP A SITE, TAP AGAIN TO PICK A ROLE':'ARROWS TO CHOOSE · SPACE TO PICK A ROLE · ESC BACK',W/2,H-14,'#ff7a1a',6,'center');
+  text('Practice scores are not posted to the team board',W/2,H-24,'#9aa0ae',6,'center');
+}
+function startRun(){if(practice){startPractice();return}runAudits=0;contUsed=false;auditRun=null;usedAuditQs=[];runVariants=Array.from({length:30},()=>Math.floor(rnd()*5));level=1;score=0;perfectPrev=false;deathCause='';p.hp=BASE_LIVES;p.ammo=0;lifeGained=false;genLevel();state='play'}
 function press(a){
   ensureAudio();
   if(a==='mute'){muted=!muted;LS.set('fhMute',muted?'1':'0');if(master)master.gain.value=muted?0:0.9;return}
   if(a==='music'){musicOn=!musicOn;LS.set('fhMusic',musicOn?'1':'0');if(musG)musG.gain.value=musicOn?0.45:0;return}
   if(state==='audit'){if(auditCur&&auditCur.answered)closeAudit();return}
   if(a==='pause'){if(state==='play')state='pause';else if(state==='pause')state='play';return}
-  if(state==='title'||state==='over'){if(a==='jump'||a==='start'){state='select';selIdx=Math.max(0,ROLE_ORDER.indexOf(role))}return}
+  if((state==='title'||state==='over')&&a==='practice'){state='pick';sfx.clink();return}
+  if(state==='over'&&practice){if(a==='jump'||a==='start')startPractice();return}
+  if(state==='title'||state==='over'){if(a==='jump'||a==='start'){practice=0;state='select';selIdx=Math.max(0,ROLE_ORDER.indexOf(role))}return}
   if(state==='select'){if(a==='jump'||a==='start'||a==='act')confirmRole();return}
+  if(practice&&(state==='clear'||state==='worldclear')){if(a==='jump'||a==='start'){state='title';practice=0;playSong('title',7,'major',120,false)}return}
   if(state==='clear'||state==='worldclear'||state==='sheddone'){if(a==='jump'||a==='start'){p.hp=Math.max(p.hp,BASE_LIVES);lifeGained=false;if(state==='worldclear'&&worldIdx()===1){genShed()}else{level++;genLevel()}state='play'}return}
   if(state==='pause'){if(a==='jump'||a==='start')state='play';return}
   if(a==='jump'){keys.jump=true;p.jumpBuf=8}
@@ -778,6 +801,7 @@ function release(a){if(a==='jump'||a==='left'||a==='right')keys[a]=false;if(a===
 addEventListener('keydown',e=>{
   if(!postForm.hidden||!document.getElementById('share').hidden)return;
   if(state==='audit'){auditKey(e);return}
+  if(state==='pick'){if(!e.repeat){e.preventDefault();pickKey(e.code)}return}
   const t=e.target;if(t&&t!==cv&&t.closest&&t.closest('input,textarea,select,button'))return;
   const a=MAP[e.code];if(!a)return;e.preventDefault();
   if(state==='select'&&(a==='left'||a==='right')){if(!e.repeat){selIdx=(selIdx+(a==='left'?2:1))%3;sfx.clink()}return}
@@ -820,6 +844,10 @@ cv.addEventListener('pointerdown',e=>{
   if(e.pointerType==='touch'||e.pointerType==='pen'){setTouchMode();e.preventDefault();enterImmersive()}
   const r=cv.getBoundingClientRect(),sc=Math.min(r.width/W,r.height/H),cx=(e.clientX-r.left-(r.width-W*sc)/2)/sc,cy=(e.clientY-r.top-(r.height-H*sc)/2)/sc;
   if(state==='play'){}
+  else if(state==='over'&&practice){ensureAudio();if(cy>H-40)state='pick';else startPractice()}
+  else if((state==='title'||state==='over')&&postForm.hidden&&cy>=108&&cy<=124&&Math.abs(cx-W/2)<=86){ensureAudio();state='pick';sfx.clink()}
+  else if(state==='pick'){const j=Math.floor((cx-PICK.x0)/(PICK.cw+PICK.gx)),i=Math.floor((cy-PICK.y0)/(PICK.ch+PICK.gy));
+    if(i>=0&&i<5&&j>=0&&j<3){if(i===pickW&&j===pickS)pickKey('Space');else{pickW=i;pickS=j;sfx.clink()}}else if(cy>H-30)pickKey('Escape')}
   else if(state==='select'){const i=Math.floor((cx-SEL.x0)/(SEL.w+SEL.gap));if(i>=0&&i<3&&cx-SEL.x0-i*(SEL.w+SEL.gap)<=SEL.w&&cy>SEL.y&&cy<SEL.y+SEL.h){ensureAudio();if(i===selIdx)confirmRole();else{selIdx=i;sfx.clink()}}}
   else if(postForm.hidden)press('start');
 });
@@ -931,7 +959,7 @@ function auditKey(e){
   if((e.code==='Enter'||e.code==='Space'||e.code==='KeyX')&&cur>=0&&!e.repeat)answerAudit(cur<auditCur.opts.length?cur:-1);
 }
 function settleAudit(){if(!siteAudit||shed)return 0;const earned=score-siteStartScore;const adj=Math.round(Math.max(0,earned)*AUDIT_PCT)*siteAudit;score=Math.max(0,score+adj);siteAudit=0;return adj}
-function gameOver(){if(!contUsed&&!shed){contUsed=true;openAudit(true);return}endGame()}
+function gameOver(){if(practice){state='over';sfx.over();playSong('title',7,'major',120,false);return}if(!contUsed&&!shed){contUsed=true;openAudit(true);return}endGame()}
 function endGame(){settleAudit();lastRun={score:Math.floor(score),code:ROLES[role].code,reached:reachedBase(),world:WD.name,tag:cleanTag(LS.get('fhTag')||''),team:cleanTeam(LS.get('fhTeam')||'')};LS.set('fhLastRun',JSON.stringify(lastRun));state='over';sfx.over();saveHi();playSong('title',7,'major',120,false);openPost(deathCause||'GAME OVER')}
 
 /* ================= boss ================= */
@@ -1110,10 +1138,10 @@ function update(){
   // goal
   if(!shed&&(tower?(p.x+p.w>decon.x+18&&p.x<decon.x+decon.w-18&&p.y+p.h>decon.y-34&&p.y<decon.y+decon.h):p.x+p.w>decon.x+30)){
     const allFound=!enemies.some(e=>e.type==='asb'&&e.kind!=='debris');labBonus=role==='labtech'&&allFound?Math.round((score-siteStartScore)*0.10):0;score+=labBonus;
-    perfectPrev=!lostLife&&allFound;clearBonus=Math.round((Math.min(p.hp,3)*500+Math.min(p.ammo,AMMO_BONUS_CAP)*25+level*1000)*mult);score+=clearBonus;auditAdj=settleAudit();sfx.clear();saveHi();
+    perfectPrev=!lostLife&&allFound;clearBonus=Math.round((Math.min(p.hp,3)*500+Math.min(p.ammo,AMMO_BONUS_CAP)*25+level*1000)*mult);score+=clearBonus;auditAdj=settleAudit();sfx.clear();if(!practice)saveHi();
     lifeGained=false;if(perfectPrev&&p.hp<MAX_LIVES){p.hp++;lifeGained=true;setTimeout(()=>sfx.pick(),500)}
     state=stageN()===3?'worldclear':'clear';
-    if(state==='worldclear')autoPost();
+    if(state==='worldclear'&&!practice)autoPost();
   }
   if(tower){const k=curFloor();if(k>tower.cur&&p.onGround&&p.ground&&!p.ground.stair){tower.cur=k;banner={t:130,big:k===tower.N-1?'TOP FLOOR':'LEVEL '+k,small:TOWER_NAMES[k]||''};sfx.pick()}
     const minY=floorY(tower.N-1)-160,ty=Math.max(minY,Math.min(0,p.y+p.h-150));camY+=(ty-camY)*0.1}else camY=0;
@@ -1468,21 +1496,21 @@ function title(){
   ctx.drawImage(PLR[role][Math.floor(frameN/8)%2?'r1':'r2'][1],70,GY-16);drawTool(78,GY-7,1);
   ctx.drawImage(ASB.chrysotile.spr,130,GY-10);ctx.drawImage(ASB.crocidolite.spr,170,GY-10);ctx.drawImage(MON[Math.floor(frameN/10)%2],215,GY-20);
   ctx.drawImage(BOSS_SPR[4][Math.floor(frameN/14)%2],280,GY-40,32,40);
-  rect(0,20,W,100,'rgba(8,9,14,0.66)');
+  rect(0,20,W,114,'rgba(8,9,14,0.66)');
   const lh=drawSqn(W/2-17,22,34,true);if(lh)text('PRESENTS',W/2,23+lh,'#9aa0ae',6,'center');
   text('FIBRE HUNTER',W/2,44,'#f5c400',16,'center');
   text('Three roles. Three tools. Zero fibres.',W/2,64,'#ebe6d6',6,'center');
   text('5 WORLDS  ·  BOSS EVERY 3RD SITE',W/2,76,'#38e0ff',6,'center');
   if(Math.floor(frameN/30)%2)text(touchMode?'TAP TO START':'PRESS SPACE TO START',W/2,91,'#ff7a1a',8,'center');
-  text(touchMode?'Turn your phone sideways for a bigger screen':'Click the screen first if keys do nothing',W/2,106,'#9aa0ae',6,'center');
+  rect(W/2-84,110,168,12,'rgba(56,224,255,0.15)');rect(W/2-84,110,168,1,'#38e0ff');rect(W/2-84,121,168,1,'#38e0ff');text(touchMode?'TAP HERE TO PRACTICE A SITE':'PRESS T TO PRACTICE A SITE',W/2,113,'#38e0ff',6,'center');
   const lead=board.docs[0];
-  text(lead?('BOARD LEADER  '+cleanTag(lead.tag)+'  '+(lead.best|0)):(hi?'YOUR BEST  '+hi:''),W/2,124,'#ebe6d6',6,'center');
+  text(lead?('BOARD LEADER  '+cleanTag(lead.tag)+'  '+(lead.best|0)):(hi?'YOUR BEST  '+hi:''),W/2,128,'#ebe6d6',6,'center');
 }
 const SEL={x0:16,w:112,gap:8,y:30,h:138};
 function selectScreen(){
   WD=WORLDS[0];bgRural();rect(0,GY,W,H-GY,'#6b4a32');rect(0,GY,W,4,'#5fae3e');
   rect(0,0,W,H,'rgba(8,9,14,0.6)');
-  text('CHOOSE YOUR ROLE',W/2,12,'#f5c400',10,'center');
+  text(practice?'PRACTICE '+(worldIdx2(practice)+1)+'-'+((practice-1)%3+1)+': CHOOSE YOUR ROLE':'CHOOSE YOUR ROLE',W/2,12,'#f5c400',practice?8:10,'center');
   ROLE_ORDER.forEach((r,i)=>{const R_=ROLES[r],x=SEL.x0+i*(SEL.w+SEL.gap),on=i===selIdx;
     rect(x,SEL.y,SEL.w,SEL.h,on?'rgba(40,36,18,0.95)':'rgba(20,22,28,0.92)');
     const bc=on?'#f5c400':'#3a3f4a';rect(x,SEL.y,SEL.w,2,bc);rect(x,SEL.y+SEL.h-2,SEL.w,2,bc);rect(x,SEL.y,2,SEL.h,bc);rect(x+SEL.w-2,SEL.y,2,SEL.h,bc);
@@ -1496,6 +1524,7 @@ function selectScreen(){
 function draw(){
   if(state==='title'){title();return}
   if(state==='select'){selectScreen();return}
+  if(state==='pick'){pickScreen();return}
   if(tower)bgTower();else background();
   const sx=shake>0?Math.round((rnd()-0.5)*Math.min(6,shake)):0,sy=shake>0?Math.round((rnd()-0.5)*Math.min(4,shake)):0;
   ctx.save();ctx.translate(-Math.round(camX)+sx,-Math.round(camY)+sy);
@@ -1527,11 +1556,13 @@ function draw(){
   if(mesoT){ctx.globalAlpha=Math.min(0.5,mesoT/500);rect(0,0,W,H,'#14161c');ctx.globalAlpha=1}
   hud();
   if(state==='pause')panel([['PAUSED','#f5c400',12],[touchMode?'TAP the screen to resume':'P or SPACE to resume','#9aa0ae',6],['N music  ·  M mute','#9aa0ae',6]],72);
-  if(state==='clear')panel([['SITE CLEARED','#f5c400',12],...(perfectPrev?[['PERFECT! No asbestos missed, no lives lost','#f5c400',6],[lifeGained?'EXTRA LIFE! Plus a Super Vacuum next site':'Super Vacuum ready (max 5 lives already)','#f5c400',6]]:[['Clearance certificate issued by SQN.','#ebe6d6',6]]),...(labBonus?[['LAB TECH: ALL ASBESTOS FOUND +'+labBonus,'#5bd17a',6]]:[]),...(auditAdj?[[auditAdj>0?'SITE AUDIT PASSED +'+auditAdj:'SITE AUDIT FAILED '+auditAdj,auditAdj>0?'#84bd41':'#ff5a6a',6]]:[]),['Bonus +'+clearBonus,'#38e0ff',8],['Score '+score,'#ebe6d6',8],[(touchMode?'TAP':'SPACE')+' for site '+(worldIdx()+1)+'-'+(stageN()+1),'#ff7a1a',6]],52);
+  if(practice&&(state==='clear'||state==='worldclear'))panel([['PRACTICE SITE CLEARED','#f5c400',10],['Score '+score+(perfectPrev?'  ·  PERFECT!':''),'#ebe6d6',8],['Practice scores are not posted','#9aa0ae',6],[(touchMode?'TAP':'SPACE')+' for the title screen','#ff7a1a',6]],64);
+  else if(state==='clear')panel([['SITE CLEARED','#f5c400',12],...(perfectPrev?[['PERFECT! No asbestos missed, no lives lost','#f5c400',6],[lifeGained?'EXTRA LIFE! Plus a Super Vacuum next site':'Super Vacuum ready (max 5 lives already)','#f5c400',6]]:[['Clearance certificate issued by SQN.','#ebe6d6',6]]),...(labBonus?[['LAB TECH: ALL ASBESTOS FOUND +'+labBonus,'#5bd17a',6]]:[]),...(auditAdj?[[auditAdj>0?'SITE AUDIT PASSED +'+auditAdj:'SITE AUDIT FAILED '+auditAdj,auditAdj>0?'#84bd41':'#ff5a6a',6]]:[]),['Bonus +'+clearBonus,'#38e0ff',8],['Score '+score,'#ebe6d6',8],[(touchMode?'TAP':'SPACE')+' for site '+(worldIdx()+1)+'-'+(stageN()+1),'#ff7a1a',6]],52);
   if(state==='sheddone')panel([['BONUS ROUND OVER','#f5c400',12],['Free round: no lives lost','#9aa0ae',6],['Openings '+shed.opened+' of '+cavs.length+'   Asbestos '+shed.smashed+' of '+shed.total,'#ebe6d6',6],...(shed.all?[['EVERY PIECE! +'+shed.all,'#f5c400',6]]:[]),...(shed.lab?[['LAB TECH: ALL ASBESTOS FOUND +'+shed.lab,'#5bd17a',6]]:[]),['Score '+score,'#ebe6d6',8],[(touchMode?'TAP':'SPACE')+' for world 3','#ff7a1a',6]],52);
-  if(state==='worldclear'){const nw=WORLDS[(worldIdx()+1)%5],looped=worldIdx()===4;
+  if(state==='worldclear'&&!practice){const nw=WORLDS[(worldIdx()+1)%5],looped=worldIdx()===4;
     panel([[looped?'ALL 5 WORLDS CLEARED':'WORLD CLEARED','#f5c400',looped?10:12],['Bonus +'+clearBonus+'   Score '+score,'#ebe6d6',6],...(labBonus?[['LAB TECH: ALL ASBESTOS FOUND +'+labBonus,'#5bd17a',6]]:[]),...(auditAdj?[[auditAdj>0?'SITE AUDIT PASSED +'+auditAdj:'SITE AUDIT FAILED '+auditAdj,auditAdj>0?'#84bd41':'#ff5a6a',6]]:[]),...(perfectPrev?[['PERFECT! '+(lifeGained?'Extra life + ':'')+'Super Vacuum next site','#f5c400',6]]:[]),[looped?'The crews are back, and tougher':worldIdx()===1?'First, a bonus round:':'Next world:','#9aa0ae',6],[worldIdx()===1?'THE SMASH-IT-UP SHED':nw.name,'#38e0ff',8],[(touchMode?'TAP':'SPACE')+' to continue','#ff7a1a',6]],52)}
-  if(state==='over'&&postForm.hidden)panel([[deathCause||'GAME OVER','#ff3b4f',deathCause?10:12],...(deathCause?[['Asbestos kills. Always wear your RPE.','#9aa0ae',6]]:[]),['Reached '+(worldIdx()+1)+'-'+stageN()+' '+WD.name,'#ebe6d6',6],['Score '+score+'   Best '+hi,'#ebe6d6',8],[(touchMode?'TAP':'SPACE')+' to try again','#ff7a1a',6]],60);
+  if(state==='over'&&practice)panel([[deathCause||'PRACTICE OVER','#ff3b4f',10],['Score '+score,'#ebe6d6',8],[(touchMode?'TAP':'SPACE')+' to retry this site','#ff7a1a',6],[touchMode?'Tap the bottom edge to pick another site':'T to pick another site','#38e0ff',6]],60);
+  else if(state==='over'&&postForm.hidden)panel([[deathCause||'GAME OVER','#ff3b4f',deathCause?10:12],...(deathCause?[['Asbestos kills. Always wear your RPE.','#9aa0ae',6]]:[]),['Reached '+(worldIdx()+1)+'-'+stageN()+' '+WD.name,'#ebe6d6',6],['Score '+score+'   Best '+hi,'#ebe6d6',8],[(touchMode?'TAP':'SPACE')+' to try again','#ff7a1a',6]],60);
 }
 
 /* ================= scoreboard (Supabase) ================= */
