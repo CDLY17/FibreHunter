@@ -254,8 +254,8 @@ ol.worlds b{color:var(--hazard);font-weight:normal}
       <dl>
         <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>Walk the site</dd>
         <dt><kbd>Space</kbd></dt><dd>Jump (hold for higher)</dd>
-        <dt><kbd>X</kbd></dt><dd>Stab with the chisel. With throwing chisels in stock, X throws one unless a target is in stabbing range.</dd>
-        <dt>Hold <kbd>X</kbd></dt><dd>Boss fights only: hold to charge, let go when the bar flashes to throw a flaming super chisel that does double damage. A quick tap throws normally. On a phone, hold X.</dd>
+        <dt><kbd>X</kbd></dt><dd>Use your tool up close: the Assessor's chisel, the Surveyor's hammer or the Lab Tech's spray bottle. They all work the same. With spares in stock, X throws one (or fires a longer squirt) unless a target is in close range.</dd>
+        <dt>Hold <kbd>X</kbd></dt><dd>Boss fights only: hold to charge, let go when the bar flashes to throw a flaming super chisel or hammer (or a scalding spray) that does double damage. A quick tap throws normally. On a phone, hold X.</dd>
         <dt><kbd>P</kbd></dt><dd>Pause</dd>
         <dt><kbd>N</kbd> <kbd>M</kbd></dt><dd>Music on/off · Mute everything</dd>
         <dt>Phone</dt><dd>Tap the game to go full screen. Left thumb slides on the arrow pad; right thumb on JUMP (hold for higher) and X.</dd>
@@ -279,12 +279,12 @@ ol.worlds b{color:var(--hazard);font-weight:normal}
         <dt><span class="sw" style="background:#efe9da"></span>Chrysotile</dt><dd>White asbestos · 100</dd>
         <dt><span class="sw" style="background:#b88c5e"></span>Amosite</dt><dd>Brown asbestos · 150</dd>
         <dt><span class="sw" style="background:#6a8fc0"></span>Crocidolite</dt><dd>Blue asbestos · 200</dd>
-        <dt><span class="sw" style="background:#ff4fa0"></span>Removal monster</dt><dd>Two stabs or one thrown chisel · 250</dd>
+        <dt><span class="sw" style="background:#ff4fa0"></span>Removal monster</dt><dd>Two hits up close or one thrown · 250</dd>
         <dt><span class="sw" style="background:#9cc3e6"></span>Bystanders</dt><dd>Leave them alone. Hitting one costs 200.</dd>
         <dt><span class="sw" style="background:#38e0ff"></span>Scuba mask</dt><dd>5 seconds of immunity. Anything hostile you touch is destroyed.</dd>
         <dt><span class="sw" style="background:#84bd41"></span>Site audit</dt><dd>The SQN auditor runs out to meet you early on the first site of every world. Answer right for +10% on that site's points, wrong for −10%. In worlds 3 to 5 a right answer also gives a scuba mask or Super Vacuum until halfway.</dd><dt><span class="sw" style="background:#5bd17a"></span>Continue</dt><dd>Once a game, when you run out of lives, answer a harder awareness question correctly for 3 extra lives.</dd>
         <dt><span class="sw" style="background:#ff3b4f"></span>Lives</dt><dd>Start with 4. A perfect site (no asbestos missed, no lives lost) earns an extra life, up to 5.</dd>
-        <dt><span class="sw" style="background:#ff7a1a"></span>Throwing chisel</dt><dd>+5 chisels. Stockpile up to 20, and you start each site with none.</dd>
+        <dt><span class="sw" style="background:#ff7a1a"></span>Tool pickup</dt><dd>+5 chisels, hammers or sprays. Stockpile up to 20, and you start each site with none.</dd>
       </dl>
     </div>
   </section>
@@ -332,7 +332,7 @@ const legs={idle:["..BB...BB...","..BB...BB...","..BB...BB...",".KKK...KKK.."],r
 const ROLE_ORDER=['labtech','surveyor','assessor'];
 const ROLES={
   labtech:{name:'LAB TECH',code:'L',perks:['+10% SITE BONUS','WHEN YOU FIND','ALL THE ASBESTOS'],pal:Object.assign({},pPal,{S:'#c99a74',Y:'#2c6fd1',y:'#1f4f99',O:'#f4f6f8',R:'#9cc7e8',B:'#4a5060'})},
-  surveyor:{name:'SURVEYOR',code:'S',perks:['LONG CHISEL THROW','x2 ASBESTOS PTS','IN A SCUBA MASK'],pal:Object.assign({},pPal,{Y:'#f2f2f2',y:'#c9ced6',O:'#c6f03a',R:'#e8eef4',B:'#3a3f4a'})},
+  surveyor:{name:'SURVEYOR',code:'S',perks:['LONG HAMMER THROW','x2 ASBESTOS PTS','IN A SCUBA MASK'],pal:Object.assign({},pPal,{Y:'#f2f2f2',y:'#c9ced6',O:'#c6f03a',R:'#e8eef4',B:'#3a3f4a'})},
   assessor:{name:'ASSESSOR',code:'A',perks:['ANGRY CONTRACTORS','2 HITS, FASTER,','BUT +25% POINTS'],pal:Object.assign({},pPal,{H:'#5a3420',h:'#7a4a2c',L:'#c94a5a'}),
     top:["....YYYY....","...YYYYYY...","..yYYYYYYYY.","..HSSSSS....",".HhSSSES....",".HHSSSLS....",".H..SSS.....","H.OOOOOOO...",".SORRRRROS..",".SOOOOOOOS..","..OOOOOOO...","..BBBBBBB..."]}};
 const PLR={};for(const r of ROLE_ORDER){PLR[r]={};for(const k in legs){const s=sprite((ROLES[r].top||top).concat(legs[k]),ROLES[r].pal);PLR[r][k]=[flip(s),s]}}
@@ -907,7 +907,7 @@ function startBoss(){
   solids.push({x:arena.x-6,y:-40,w:6,h:GY+40,kind:'barrier',id:'L'});
   const hp=14+worldIdx()*5+loopN()*10;
   boss={type:'boss',x:arena.x+W-80,y:GY-40,w:28,h:40,vx:0,vy:0,hp,max:hp,state:'intro',t:0,face:-1,inv:0,flash:0,onGround:false,anim:0,lockFace:-1};
-  banner={t:150,big:'BOSS: '+WD.boss.name,small:'Hold X to charge a flaming double-damage chisel',boss:true};
+  banner={t:150,big:'BOSS: '+WD.boss.name,small:role==='labtech'?'Hold X to charge a scalding double-damage spray':'Hold X to charge a flaming double-damage '+tool().desc,boss:true};
   sfx.roar();shake=20;
   playSong('boss'+level,777+worldIdx()*13+loopN(),'minor',150+worldIdx()*3,true);
   spawn.ammo=240;
@@ -1027,7 +1027,7 @@ function update(){
   // shots
   for(const s of shots){s.vy+=s.g;s.x+=s.vx;s.y+=s.vy;s.rot+=0.5;s.life--;
     for(const e of enemies)if(!e.dead&&ov(s,e)){damage(e,s.dmg||2,'throw');s.life=0;break}
-    if(s.sup)for(let i=0;i<3;i++)parts.push({x:s.x+4+rnd()*8,y:s.y+rnd()*5,vx:-s.vx*(0.05+rnd()*0.1),vy:-0.25-rnd()*0.6,t:18+rnd()*14,g:-0.01,flame:true,s:rnd()<0.4?3:2});
+    if(s.sup)for(let i=0;i<3;i++)parts.push({x:s.x+4+rnd()*8,y:s.y+rnd()*5,vx:-s.vx*(0.05+rnd()*0.1),vy:-0.25-rnd()*0.6,t:18+rnd()*14,g:-0.01,flame:role!=='labtech',col:rnd()<0.5?'#e6f6ff':'#9fd8ff',s:rnd()<0.4?3:2});
     if(s.life>0&&boss&&ov(s,boss)){damage(boss,s.dmg||2,'throw');if(s.sup){burst(s.x+7,s.y,'#ffb000',14);floaters.push({x:boss.x-4,y:boss.y-12,txt:'SUPER HIT!',t:50,col:'#ffb000'})}s.life=0}
     if(s.life>0)for(const h of hazards)if(h.hittable&&!h.dead&&ov(s,h)){h.dead=true;s.life=0;addPts(50);burst(h.x+4,h.y+4,'#e9e4d6',8);break}
     if(s.life>0)for(const n of npcs)if(ov(s,n)){hitNpc(n);s.life=0;break}
@@ -1058,7 +1058,7 @@ function update(){
   // pickups
   for(const k of pickups){k.t++;if(!k.float){k.vy=Math.min(5,k.vy+GRAV);moveEnt(k);if(k.y>H+30)k.gone=true}
     if(ov(p,k)){k.gone=true;sfx.pick();
-      if(k.type==='chisel'){const got=Math.min(CHISEL_PICKUP,MAX_AMMO-p.ammo);p.ammo+=got;addPts(50);floaters.push({x:k.x-14,y:k.y-6,txt:got>0?'+'+got+' CHISEL'+(got>1?'S':'')+(p.ammo>=MAX_AMMO?' (MAX)':''):'CHISELS FULL',t:60,col:'#ff7a1a'})}
+      if(k.type==='chisel'){const got=Math.min(CHISEL_PICKUP,MAX_AMMO-p.ammo);p.ammo+=got;addPts(50);floaters.push({x:k.x-14,y:k.y-6,txt:got>0?'+'+got+' '+(got>1?tool().many:tool().one)+(p.ammo>=MAX_AMMO?' (MAX)':''):tool().many+' FULL',t:60,col:'#ff7a1a'})}
       else if(k.type==='mask'){p.mask=300;sfx.mask();floaters.push({x:k.x-18,y:k.y-6,txt:'SCUBA MASK!',t:70,col:'#38e0ff'})}
       else{if(p.hp<BASE_LIVES)p.hp++;else addPts(100);floaters.push({x:k.x-10,y:k.y-6,txt:'FIRST AID',t:60,col:'#5bd17a'})}}}
   pickups=pickups.filter(k=>!k.gone);
@@ -1306,11 +1306,25 @@ function drawChisel(x,y,face){
   if(face>0){rect(x,y,4,3,'#ff7a1a');rect(x,y,4,1,'#ffa35c');rect(x+4,y,1,3,'#9aa3ad');rect(x+5,y+1,6,1,'#c8d0da');rect(x+5,y,5,1,'#e8eef4');rect(x+5,y+2,5,1,'#7e8792');rect(x+11,y+1,1,1,'#ffffff')}
   else{rect(x+8,y,4,3,'#ff7a1a');rect(x+8,y,4,1,'#ffa35c');rect(x+7,y,1,3,'#9aa3ad');rect(x+1,y+1,6,1,'#c8d0da');rect(x+2,y,5,1,'#e8eef4');rect(x+2,y+2,5,1,'#7e8792');rect(x,y+1,1,1,'#ffffff')}
 }
+// Each role's tool. They all work the same; only the look and the words change.
+const TOOLS={assessor:{one:'CHISEL',many:'CHISELS',desc:'chisel'},surveyor:{one:'HAMMER',many:'HAMMERS',desc:'hammer'},labtech:{one:'SPRAY',many:'SPRAYS',desc:'spray bottle'}};
+const tool=r=>TOOLS[r||role]||TOOLS.assessor;
+function drawHammer(x,y,face){
+  if(face>0){rect(x,y+1,8,2,'#a8743e');rect(x,y+1,8,1,'#c99158');rect(x,y+1,2,2,'#2a2f3a');rect(x+8,y-2,4,7,'#9aa3ad');rect(x+8,y-2,4,1,'#e8eef4');rect(x+11,y-2,1,7,'#6b737e')}
+  else{rect(x+4,y+1,8,2,'#a8743e');rect(x+4,y+1,8,1,'#c99158');rect(x+10,y+1,2,2,'#2a2f3a');rect(x,y-2,4,7,'#9aa3ad');rect(x,y-2,4,1,'#e8eef4');rect(x,y-2,1,7,'#6b737e')}
+}
+function drawSpray(x,y,face){
+  // bottle body, then trigger head pointing the way you face
+  const bx=face>0?x+1:x+6;rect(bx,y-1,5,6,'#2c6fd1');rect(bx+1,y,3,4,'#7fb6f0');rect(bx+1,y,1,4,'#c9e4ff');
+  const hx=face>0?x+1:x+5;rect(hx,y-3,6,2,'#84bd41');rect(face>0?x+7:x+3,y-3,2,1,'#84bd41');rect(face>0?x+9:x+2,y-3,1,1,'#253746');rect(face>0?x+4:x+7,y-1,1,2,'#5f8f2c');
+}
+function drawTool(x,y,face,r){const t=r||role;if(t==='surveyor')drawHammer(x,y,face);else if(t==='labtech')drawSpray(x,y,face);else drawChisel(x,y,face)}
+function drawWater(x,y,len,face){for(let i=0;i<len;i+=2){const dy=Math.round(Math.sin(i*1.7+frameN)*1);rect(face>0?x+i:x-i,y+dy,2,1,i%4?'#9fd8ff':'#e6f6ff')}}
 function drawMaskIcon(x,y){rect(x+1,y+3,10,7,'#1b1b24');rect(x+2,y+4,8,5,'#38e0ff');rect(x+3,y+5,3,2,'#c9fbff');rect(x,y+5,1,3,'#1b1b24');rect(x+11,y+5,1,3,'#1b1b24');rect(x+10,y-2,2,6,'#f5c400');rect(x+9,y-3,3,2,'#f5c400')}
 function drawPickup(k){
   const bob=k.float?Math.round(Math.sin(k.t/12)*2):0,x=Math.round(k.x),y=Math.round(k.y)+bob;
   ctx.globalAlpha=0.25+0.15*Math.sin(k.t/8);rect(x-2,y-2,16,16,k.type==='mask'?'#38e0ff':k.type==='medkit'?'#5bd17a':'#ff7a1a');ctx.globalAlpha=1;
-  if(k.type==='chisel'){ctx.save();ctx.translate(x+6,y+6);ctx.rotate(-0.6);drawChisel(-6,-1,1);ctx.restore();text('5',x+8,y+6,'#ffffff',6)}
+  if(k.type==='chisel'){ctx.save();ctx.translate(x+6,y+6);ctx.rotate(role==='labtech'?0:-0.6);drawTool(-6,-1,1);ctx.restore();text('5',x+8,y+6,'#ffffff',6)}
   else if(k.type==='mask')drawMaskIcon(x,y+1);
   else{rect(x+1,y+3,10,8,'#2e9d55');rect(x+4,y+1,4,2,'#1f6e3b');rect(x+5,y+4,2,6,'#ffffff');rect(x+3,y+6,6,2,'#ffffff')}
 }
@@ -1326,9 +1340,9 @@ function drawPlayer(){
   if(p.mask>0){rect(X+3,Y+3,6,4,'#1b1b24');rect(X+4,Y+4,4,2,'#38e0ff');rect(p.face>0?X+3:X+8,Y-1,1,5,'#f5c400')}
   if(p.vac>0){const bx=p.face>0?X-3:X+10;rect(bx,Y+7,4,7,'#f5c400');rect(bx,Y+7,4,1,'#ffe066');const nx=p.face>0?X+11:X-6;rect(p.face>0?X+9:X-1,Y+11,3,1,'#3a3d47');rect(nx,Y+10,5,3,'#3a3d47');if(frameN%6<3)rect(p.face>0?nx+5:nx-1,Y+11,1,1,'#e9e4d6');if(p.vac<120&&frameN%10<5){ctx.globalAlpha=0.5;rect(X-2,Y-2,16,20,'#f5c400');ctx.globalAlpha=1}}
   const hx=p.face>0?X+9:X-1,hy=Y+8;
-  if(p.attackT>0&&p.attackKind==='stab'){const ext=p.attackT>10?2:p.attackT>4?9:4;if(p.face>0)drawChisel(hx+ext-2,hy,1);else drawChisel(hx-ext-9,hy,-1)}
+  if(p.attackT>0&&p.attackKind==='stab'){if(role==='labtech'){if(p.face>0){drawSpray(hx+1,hy+1,1);drawWater(hx+11,hy-2,p.attackT>4?14:7,1)}else{drawSpray(hx-11,hy+1,-1);drawWater(hx-10,hy-2,p.attackT>4?14:7,-1)}}else{const ext=p.attackT>10?2:p.attackT>4?9:4;if(p.face>0)drawTool(hx+ext-2,hy,1);else drawTool(hx-ext-9,hy,-1)}}
   else if(p.attackT>0)rect(hx,hy-2,2,2,'#e8b48a');
-  else if(p.onGround){if(p.face>0)drawChisel(hx-3,hy+1,1);else drawChisel(hx-7,hy+1,-1)}
+  else if(p.onGround){if(p.face>0)drawTool(hx-3,hy+1,1);else drawTool(hx-7,hy+1,-1)}
 }
 function drawEnemy(e){
   const X=Math.round(e.x),Y=Math.round(e.y);
@@ -1369,7 +1383,7 @@ function drawBoss(){
 function hud(){
   rect(0,0,W,16,'rgba(8,9,14,0.75)');
   for(let i=0;i<MAX_LIVES;i++)ctx.drawImage(i<p.hp?HEART:HEART0,6+i*9,5);
-  ctx.save();ctx.translate(58,8);drawChisel(0,-1,1);ctx.restore();text('x'+p.ammo,72,5,p.ammo>=MAX_AMMO?'#f5c400':p.ammo?'#ff7a1a':'#6b7080');
+  ctx.save();ctx.translate(58,8);drawTool(0,-1,1);ctx.restore();text('x'+p.ammo,72,5,p.ammo>=MAX_AMMO?'#f5c400':p.ammo?'#ff7a1a':'#6b7080');
   text(shed?'BONUS SHED':(worldIdx()+1)+'-'+stageN()+' '+WD.name,W/2+6,5,'#f5c400',6,'center');
   text(String(score).padStart(7,'0'),W-6,5,'#ebe6d6',8,'right');
   if(mult>1)text('x'+mult,W-66,5,'#f5c400',8,'right');
@@ -1393,13 +1407,13 @@ function panel(lines,y0=58){
 function title(){
   WD=WORLDS[0];bgRural();
   rect(0,GY,W,H-GY,'#6b4a32');rect(0,GY,W,4,'#5fae3e');
-  ctx.drawImage(PLR[role][Math.floor(frameN/8)%2?'r1':'r2'][1],70,GY-16);drawChisel(78,GY-7,1);
+  ctx.drawImage(PLR[role][Math.floor(frameN/8)%2?'r1':'r2'][1],70,GY-16);drawTool(78,GY-7,1);
   ctx.drawImage(ASB.chrysotile.spr,130,GY-10);ctx.drawImage(ASB.crocidolite.spr,170,GY-10);ctx.drawImage(MON[Math.floor(frameN/10)%2],215,GY-20);
   ctx.drawImage(BOSS_SPR[4][Math.floor(frameN/14)%2],280,GY-40,32,40);
   rect(0,20,W,100,'rgba(8,9,14,0.66)');
   const lh=drawSqn(W/2-17,22,34,true);if(lh)text('PRESENTS',W/2,23+lh,'#9aa0ae',6,'center');
   text('FIBRE HUNTER',W/2,44,'#f5c400',16,'center');
-  text('Three roles. One chisel. Zero fibres.',W/2,64,'#ebe6d6',6,'center');
+  text('Three roles. Three tools. Zero fibres.',W/2,64,'#ebe6d6',6,'center');
   text('5 WORLDS  ·  BOSS EVERY 3RD SITE',W/2,76,'#38e0ff',6,'center');
   if(Math.floor(frameN/30)%2)text(touchMode?'TAP TO START':'PRESS SPACE TO START',W/2,91,'#ff7a1a',8,'center');
   text(touchMode?'Turn your phone sideways for a bigger screen':'Click the screen first if keys do nothing',W/2,106,'#9aa0ae',6,'center');
@@ -1415,7 +1429,7 @@ function selectScreen(){
     rect(x,SEL.y,SEL.w,SEL.h,on?'rgba(40,36,18,0.95)':'rgba(20,22,28,0.92)');
     const bc=on?'#f5c400':'#3a3f4a';rect(x,SEL.y,SEL.w,2,bc);rect(x,SEL.y+SEL.h-2,SEL.w,2,bc);rect(x,SEL.y,2,SEL.h,bc);rect(x+SEL.w-2,SEL.y,2,SEL.h,bc);
     const k=on?(Math.floor(frameN/8)%2?'r1':'r2'):'idle';ctx.drawImage(PLR[r][k][1],x+SEL.w/2-18,SEL.y+8,36,48);
-    if(on){const cx=x+SEL.w/2+12;rect(cx,SEL.y+33,12,3,'#ff7a1a');rect(cx+12,SEL.y+34,10,1,'#c8d0da')}
+    {ctx.save();ctx.translate(x+SEL.w/2+14,SEL.y+32);ctx.scale(2,2);drawTool(0,0,1,r);ctx.restore()}
     text(R_.name,x+SEL.w/2,SEL.y+64,on?'#f5c400':'#ebe6d6',8,'center');
     R_.perks.forEach((l,j)=>text(l,x+SEL.w/2,SEL.y+82+j*12,on?'#ebe6d6':'#9aa0ae',6,'center'));
   });
@@ -1437,7 +1451,7 @@ function draw(){
   for(const e of enemies)if(e.x>camX-20&&e.x<camX+W+20)drawEnemy(e);
   if(boss)drawBoss();
   for(const h of hazards)drawHazard(h);
-  for(const s of shots){ctx.save();ctx.translate(Math.round(s.x+5),Math.round(s.y+1));if(s.sup){ctx.globalAlpha=0.5;rect(-9,-5,20,10,'#ff6a1a');rect(-6,-3,14,6,'#ffd04a');ctx.globalAlpha=1;ctx.scale(1.6,1.6)}ctx.rotate(s.rot*Math.sign(s.vx));drawChisel(-6,-1,1);ctx.restore()}
+  for(const s of shots){ctx.save();ctx.translate(Math.round(s.x+5),Math.round(s.y+1));if(s.sup){const wt=role==='labtech';ctx.globalAlpha=0.5;rect(-9,-5,20,10,wt?'#2c8fe0':'#ff6a1a');rect(-6,-3,14,6,wt?'#bfe6ff':'#ffd04a');ctx.globalAlpha=1;ctx.scale(1.6,1.6)}if(role==='labtech'){const f=Math.sign(s.vx)||1;rect(-3,-1,6,4,'#7fc4ff');rect(-2,0,3,2,'#e6f6ff');drawWater(f>0?-5:5,0,8,-f)}else{ctx.rotate(s.rot*Math.sign(s.vx));drawTool(-6,-1,1)}ctx.restore()}
   if(auditRun){const ax=Math.round(auditRun.x),ay=Math.round(auditRun.y);ctx.drawImage(AUDITOR.run[Math.floor(auditRun.t/6)%2],ax,ay);
     if(frameN%30<20){rect(ax-8,ay-15,30,10,'#84bd41');rect(ax-7,ay-14,28,8,'#0d0f14');text('AUDIT!',ax+7,ay-13,'#84bd41',6,'center')}}
   if(auditorT>0){const ax=p.x+22+(auditorT<80?(80-auditorT)*1.2:0),ay=Math.round(auditY);ctx.globalAlpha=auditorT<80?auditorT/80:1;ctx.drawImage(AUDITOR[auditorT<80?1:0],Math.round(ax),ay);if(state==='audit'&&frameN%40<26)text('?',ax+3,ay-10,'#84bd41',8);ctx.globalAlpha=1}
