@@ -987,7 +987,7 @@ function update(){
   let minV=-MAXV;
   if(WD.wind){windT++;const cyc=windT%520;if(cyc===330)floaters.push({x:camX+W/2-40,y:60,txt:'SOUTHERLY!',t:80,col:'#d6e8ff',screen:false});
     if(cyc>330&&cyc<460){if(role!=='geo'){p.vx-=p.onGround?0.05:0.08;minV=-MAXV-0.9}else if(cyc===332)floaters.push({x:p.x-20,y:p.y-14,txt:'ROCK STEADY',t:60,col:'#c8b07a'});if(frameN%2===0)parts.push({x:camX+W+4,y:30+rnd()*150,vx:-5-rnd()*3,vy:0,t:90,col:'rgba(230,240,255,0.7)',g:0,streak:true})}}
-  {const sl=mesoT>230?0:mesoT?Math.max(0.15,1-mesoT/200):1;p.vx=Math.max(minV*sl,Math.min(MAXV*sl,p.vx))}if(Math.abs(p.vx)<0.05)p.vx=0;
+  {const sl=(mesoT>230?0:mesoT?Math.max(0.15,1-mesoT/200):1)*(role==='geo'?0.9:1);p.vx=Math.max(minV*sl,Math.min(MAXV*sl,p.vx))}if(Math.abs(p.vx)<0.05)p.vx=0;
   if(p.drill){const o=p.drill;if(!keys.act||soilUnder()!==o){p.drill=null}else{p.vx=0;o.prog++;if(frameN%4===0)parts.push({x:o.x+9+(rnd()-0.5)*8,y:o.y-3,vx:(rnd()-0.5)*1.6,vy:-1-rnd()*1.2,t:18,col:['#7a5432','#9c7450','#c9b89a'][frameN%3],g:0.14});if(frameN%10===0)tone(90+o.prog,0.05,'square',0.03);
     if(o.prog>=SOIL_DIG){o.done=true;p.drill=null;const v=addPts(SOIL_PTS);floaters.push({x:o.x-30,y:o.y-30,txt:'+'+v+' SOIL SAMPLE',t:80,col:'#c8b07a'});burst(o.x+9,o.y-4,'#8d6440',14);sfx.pick()}}}
   p.coyote=p.onGround?6:p.coyote-1;
