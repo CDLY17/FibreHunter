@@ -254,7 +254,7 @@ ol.worlds b{color:var(--hazard);font-weight:normal}
       <dl>
         <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>Walk the site</dd>
         <dt><kbd>Space</kbd></dt><dd>Jump (hold for higher)</dd>
-        <dt><kbd>X</kbd></dt><dd>Use your tool up close: the Assessor's chisel, the Surveyor's hammer or the Lab Tech's spray bottle. They all work the same. With spares in stock, X throws one (or fires a longer squirt) unless a target is in close range.</dd>
+        <dt><kbd>X</kbd></dt><dd>Use your tool up close: the Assessor's chisel, the Surveyor's hammer, the Lab Tech's spray bottle or the Geoscientist's hand auger. They all work the same. With spares in stock, X throws one (or fires a longer squirt) unless a target is in close range.</dd>
         <dt>Hold <kbd>X</kbd></dt><dd>Boss fights only: hold to charge, let go when the bar flashes to throw a flaming super chisel or hammer (or a scalding spray) that does double damage. A quick tap throws normally. On a phone, hold X.</dd>
         <dt><kbd>P</kbd></dt><dd>Pause</dd>
         <dt><kbd>N</kbd> <kbd>M</kbd></dt><dd>Music on/off · Mute everything</dd>
@@ -282,9 +282,9 @@ ol.worlds b{color:var(--hazard);font-weight:normal}
         <dt><span class="sw" style="background:#ff4fa0"></span>Removal monster</dt><dd>Two hits up close or one thrown · 250</dd>
         <dt><span class="sw" style="background:#9cc3e6"></span>Bystanders</dt><dd>Leave them alone. Hitting one costs 200.</dd>
         <dt><span class="sw" style="background:#38e0ff"></span>Scuba mask</dt><dd>5 seconds of immunity. Anything hostile you touch is destroyed.</dd>
-        <dt><span class="sw" style="background:#84bd41"></span>Site audit</dt><dd>The SQN auditor runs out to meet you early on the first site of every world. Answer right for +10% on that site's points, wrong for −10%. In worlds 3 to 5 a right answer also gives a scuba mask or Super Vacuum until halfway.</dd><dt><span class="sw" style="background:#5bd17a"></span>Continue</dt><dd>Once a game, when you run out of lives, answer a harder awareness question correctly for 3 extra lives.</dd>
+        <dt><span class="sw" style="background:#c8b07a"></span>Soil sample</dt><dd>Geoscientist only. On rural, Wellington and industrial sites, look for a dug-up mound with an orange peg. Stand on it and hold X to auger up a 500-point soil sample. Their thrown auger bits go through one target and hit a second, and Wellington's southerly can't push them around.</dd><dt><span class="sw" style="background:#84bd41"></span>Site audit</dt><dd>The SQN auditor runs out to meet you early on the first site of every world. Answer right for +10% on that site's points, wrong for −10%. In worlds 3 to 5 a right answer also gives a scuba mask or Super Vacuum until halfway.</dd><dt><span class="sw" style="background:#5bd17a"></span>Continue</dt><dd>Once a game, when you run out of lives, answer a harder awareness question correctly for 3 extra lives.</dd>
         <dt><span class="sw" style="background:#ff3b4f"></span>Lives</dt><dd>Start with 4. A perfect site (no asbestos missed, no lives lost) earns an extra life, up to 5.</dd>
-        <dt><span class="sw" style="background:#ff7a1a"></span>Tool pickup</dt><dd>+5 chisels, hammers or sprays. Stockpile up to 20, and you start each site with none.</dd>
+        <dt><span class="sw" style="background:#ff7a1a"></span>Tool pickup</dt><dd>+5 chisels, hammers, sprays or auger bits. Stockpile up to 20, and you start each site with none.</dd>
       </dl>
     </div>
   </section>
@@ -329,15 +329,17 @@ function flip(c){const f=document.createElement('canvas');f.width=c.width;f.heig
 const pPal={Y:'#f5c400',y:'#c99e00',S:'#e8b48a',E:'#1a1a2e',W:'#f2f2f2',O:'#ff7a1a',R:'#d8e0e8',B:'#2f4f8f',K:'#2a1f1a'};
 const top=["....YYYY....","...YYYYYY...","..yYYYYYYYY.","...SSSSS....","...SSSES....","...SWWWW....","....SSS.....","..OOOOOOO...",".SORRRRROS..",".SOOOOOOOS..","..OOOOOOO...","..BBBBBBB..."];
 const legs={idle:["..BB...BB...","..BB...BB...","..BB...BB...",".KKK...KKK.."],r1:["..BB..BB....",".BB....BB...","BB......BB..","KK.......KK."],r2:["...BBBB.....","....BB......","....BB......","...KKK......"],jump:["..BB...BB...",".BB.....BB..",".KK.....KK..","............"]};
-const ROLE_ORDER=['labtech','surveyor','assessor'];
+const ROLE_ORDER=['labtech','surveyor','assessor','geo'];
 const ROLES={
   labtech:{name:'LAB TECH',code:'L',perks:['+10% SITE BONUS','WHEN YOU FIND','ALL THE ASBESTOS'],pal:Object.assign({},pPal,{S:'#c99a74',Y:'#2c6fd1',y:'#1f4f99',O:'#f4f6f8',R:'#9cc7e8',B:'#4a5060'})},
   surveyor:{name:'SURVEYOR',code:'S',perks:['LONG HAMMER THROW','x2 ASBESTOS PTS','IN A SCUBA MASK'],pal:Object.assign({},pPal,{Y:'#f2f2f2',y:'#c9ced6',O:'#c6f03a',R:'#e8eef4',B:'#3a3f4a'})},
   assessor:{name:'ASSESSOR',code:'A',perks:['ANGRY CONTRACTORS','2 HITS, FASTER,','BUT +25% POINTS'],pal:Object.assign({},pPal,{H:'#5a3420',h:'#7a4a2c',L:'#c94a5a'}),
-    top:["....YYYY....","...YYYYYY...","..yYYYYYYYY.","..HSSSSS....",".HhSSSES....",".HHSSSLS....",".H..SSS.....","H.OOOOOOO...",".SORRRRROS..",".SOOOOOOOS..","..OOOOOOO...","..BBBBBBB..."]}};
+    top:["....YYYY....","...YYYYYY...","..yYYYYYYYY.","..HSSSSS....",".HhSSSES....",".HHSSSLS....",".H..SSS.....","H.OOOOOOO...",".SORRRRROS..",".SOOOOOOOS..","..OOOOOOO...","..BBBBBBB..."]},
+  geo:{name:'GEOSCIENTIST',code:'G',perks:['AUGERS 500-PT SOIL','SAMPLES OUTDOORS','BITS PIERCE TWO','WIND CAN\'T PUSH'],pal:Object.assign({},pPal,{Y:'#c8b07a',y:'#9a8455',F:'#3f9b3a',f:'#8fdc5e',S:'#e2b48c',M:'#7a4e2c',O:'#ffd21a',R:'#f4f6f8',G:'#6b7a3a',B:'#8a7652',K:'#5a3a22'}),
+    top:["....f.F.....",".....FfF....","....YYYY....",".yyYYYYYYyy.","...SSSSS....","...SSSES....","...SMMMS....","..GOMMMOG...",".SGRRRRRGS..",".SOOOOOOOS..","..OOOOOOO...","..BBBBBBB..."]}};
 const PLR={};for(const r of ROLE_ORDER){PLR[r]={};for(const k in legs){const s=sprite((ROLES[r].top||top).concat(legs[k]),ROLES[r].pal);PLR[r][k]=[flip(s),s]}}
 const CLASSIC_HERO=sprite(top.concat(legs.idle),pPal);
-const AVATARS={};function avatarSrc(code){if(code in AVATARS)return AVATARS[code];let src=null;try{const r={L:'labtech',S:'surveyor',A:'assessor'}[code];src=(r?PLR[r].idle[1]:CLASSIC_HERO).toDataURL()}catch(e){}return AVATARS[code]=src}
+const AVATARS={};function avatarSrc(code){if(code in AVATARS)return AVATARS[code];let src=null;try{const r={L:'labtech',S:'surveyor',A:'assessor',G:'geo'}[code];src=(r?PLR[r].idle[1]:CLASSIC_HERO).toDataURL()}catch(e){}return AVATARS[code]=src}
 let role=ROLES[LS.get('fhRole')]?LS.get('fhRole'):'assessor';
 let selIdx=ROLE_ORDER.indexOf(role);
 const mTop=["......WWWW......","....WWWWWWWW....","...WWWWWWWWWW...","...WKKKWWKKKW...","...WKCKWWKCKW...","...WWWWWWWWWW...",".PP.WDDDDDDW.PP.","PPPpDDDDDDDDpPPP","PPPpDDDDDDDDpPPP",".PP..DDDDDD..PP.","..WWWWWWWWWWWW..",".WWWWWWWWWWWWWW.","WWTTWWWWWWWWTTWW","WW.WWWWWWWWWW.WW","ww.WWWWWWWWWW.ww","HH.wwwwwwwwww.HH"];
@@ -650,7 +652,17 @@ function groundFreeX(x,w,pad){
   if(solids.some(o=>o.kind!=='ground'&&!o.oneway&&x+w>o.x-pad&&x<o.x+o.w+pad))return false;
   if(enemies.some(e=>Math.abs(e.x-x)<pad+14&&e.y>GY-40))return false;
   return true}
+const SOIL_PTS=500,SOIL_DIG=54,OUTDOOR={rural:1,welly:1,ind:1};
+let soils=[];
+function placeSoils(){soils=[];if(!OUTDOOR[WD.key])return;const r=mulberry(levelSeed()+97531),n=WD.key==='ind'?2:1;
+  for(let k=0;k<n;k++)for(let tries=0;tries<300;tries++){const x=300+Math.floor(r()*(levelLen-420));if(groundFreeX(x,18,6)&&!soils.some(o=>Math.abs(o.x-x)<200)){soils.push({x,y:GY,w:18,prog:0,done:false});break}}}
+function soilUnder(){if(role!=='geo'||!p.onGround)return null;const cx=p.x+p.w/2;return soils.find(o=>!o.done&&cx>o.x-2&&cx<o.x+o.w+2&&Math.abs(p.y+p.h-o.y)<3)||null}
+function drawSoils(){if(role!=='geo')return;for(const o of soils){if(o.done)continue;const X=Math.round(o.x),Y=o.y;
+  rect(X+2,Y-3,14,3,'#7a5432');rect(X+4,Y-5,10,2,'#8d6440');rect(X+6,Y-6,6,1,'#9c7450');rect(X+5,Y-4,1,1,'#c9b89a');rect(X+11,Y-3,1,1,'#c9b89a');
+  rect(X+15,Y-15,1,12,'#d9d9d9');rect(X+16,Y-15,5,4,frameN%40<20?'#ff7a1a':'#ff9a4a');
+  if(o.prog>0){rect(X-1,Y-26,20,3,'#1b1b24');rect(X,Y-25,Math.round(18*o.prog/SOIL_DIG),1,'#c8b07a')}}}
 function siteExtras(){
+  placeSoils();
   const r=mulberry(levelSeed()+424242),codes=EXTRA_ASB[(level-1)%EXTRA_ASB.length]||'';
   for(const c of codes){for(let tries=0;tries<200;tries++){const x=260+Math.floor(r()*(levelLen-360));if(groundFreeX(x,14,10)){enemies.push({type:'asb',kind:EXTRA_KIND[c],x,y:GY-10,w:14,h:10,hp:1,t:Math.floor(r()*60),flash:0});break}}}
   // Deadly Dust boards outside some shops (fixed per layout)
@@ -746,8 +758,9 @@ addEventListener('keydown',e=>{
   if(!postForm.hidden||!document.getElementById('share').hidden)return;
   if(state==='audit'){auditKey(e);return}
   const t=e.target;if(t&&t!==cv&&t.closest&&t.closest('input,textarea,select,button'))return;
+  if(state==='select'&&(e.code==='ArrowDown'||e.code==='KeyS')){e.preventDefault();if(!e.repeat){selIdx=(selIdx+2)%4;sfx.clink()}return}
   const a=MAP[e.code];if(!a)return;e.preventDefault();
-  if(state==='select'&&(a==='left'||a==='right')){if(!e.repeat){selIdx=(selIdx+(a==='left'?2:1))%3;sfx.clink()}return}
+  if(state==='select'&&(a==='left'||a==='right')){if(!e.repeat){selIdx=(selIdx+(a==='left'?3:1))%4;sfx.clink()}return}
   if(a==='left'||a==='right'){keys[a]=true;ensureAudio();return}
   if(e.repeat)return;press(a);
 });
@@ -787,12 +800,12 @@ cv.addEventListener('pointerdown',e=>{
   if(e.pointerType==='touch'||e.pointerType==='pen'){setTouchMode();e.preventDefault();enterImmersive()}
   const r=cv.getBoundingClientRect(),sc=Math.min(r.width/W,r.height/H),cx=(e.clientX-r.left-(r.width-W*sc)/2)/sc,cy=(e.clientY-r.top-(r.height-H*sc)/2)/sc;
   if(state==='play'){}
-  else if(state==='select'){const i=Math.floor((cx-SEL.x0)/(SEL.w+SEL.gap));if(i>=0&&i<3&&cx-SEL.x0-i*(SEL.w+SEL.gap)<=SEL.w&&cy>SEL.y&&cy<SEL.y+SEL.h){ensureAudio();if(i===selIdx)confirmRole();else{selIdx=i;sfx.clink()}}}
+  else if(state==='select'){const i=ROLE_ORDER.findIndex((_,k)=>{const q=selRect(k);return cx>=q.x&&cx<=q.x+SEL.w&&cy>=q.y&&cy<=q.y+SEL.h});if(i>=0){ensureAudio();if(i===selIdx)confirmRole();else{selIdx=i;sfx.clink()}}}
   else if(postForm.hidden)press('start');
 });
 const dp=document.getElementById('dpad');let dpId=null;
 function dpSet(e){const r=dp.getBoundingClientRect(),l=e.clientX<r.left+r.width/2;keys.left=l;keys.right=!l;dp.dataset.dir=l?'l':'r'}
-dp.addEventListener('pointerdown',e=>{e.preventDefault();ensureAudio();dpId=e.pointerId;try{dp.setPointerCapture(e.pointerId)}catch(_){}dpSet(e);if(state==='select'){selIdx=(selIdx+(dp.dataset.dir==='l'?2:1))%3;sfx.clink()}});
+dp.addEventListener('pointerdown',e=>{e.preventDefault();ensureAudio();dpId=e.pointerId;try{dp.setPointerCapture(e.pointerId)}catch(_){}dpSet(e);if(state==='select'){selIdx=(selIdx+(dp.dataset.dir==='l'?3:1))%4;sfx.clink()}});
 dp.addEventListener('pointermove',e=>{if(e.pointerId===dpId)dpSet(e)});
 const dpUp=e=>{if(e.pointerId!==dpId)return;dpId=null;keys.left=keys.right=false;dp.dataset.dir=''};
 ['pointerup','pointercancel','lostpointercapture'].forEach(t=>dp.addEventListener(t,dpUp));
@@ -808,6 +821,7 @@ bindBtn('tExit',exitImmersive);
 
 /* ================= combat ================= */
 function attack(){
+  if(soilUnder()){p.drill=soilUnder();return}
   if(p.attackT>0||mesoT)return;
   // Only stab when the chisel can actually connect: same box as the stab at full reach (see stabBox), slightly padded.
   const reach={x:p.face>0?p.x+p.w:p.x-15,y:p.y+4,w:15,h:9};
@@ -972,8 +986,10 @@ function update(){
   if(!keys.left&&!keys.right)p.vx*=p.onGround?0.72:0.94;
   let minV=-MAXV;
   if(WD.wind){windT++;const cyc=windT%520;if(cyc===330)floaters.push({x:camX+W/2-40,y:60,txt:'SOUTHERLY!',t:80,col:'#d6e8ff',screen:false});
-    if(cyc>330&&cyc<460){p.vx-=p.onGround?0.05:0.08;minV=-MAXV-0.9;if(frameN%2===0)parts.push({x:camX+W+4,y:30+rnd()*150,vx:-5-rnd()*3,vy:0,t:90,col:'rgba(230,240,255,0.7)',g:0,streak:true})}}
+    if(cyc>330&&cyc<460){if(role!=='geo'){p.vx-=p.onGround?0.05:0.08;minV=-MAXV-0.9}else if(cyc===332)floaters.push({x:p.x-20,y:p.y-14,txt:'ROCK STEADY',t:60,col:'#c8b07a'});if(frameN%2===0)parts.push({x:camX+W+4,y:30+rnd()*150,vx:-5-rnd()*3,vy:0,t:90,col:'rgba(230,240,255,0.7)',g:0,streak:true})}}
   {const sl=mesoT>230?0:mesoT?Math.max(0.15,1-mesoT/200):1;p.vx=Math.max(minV*sl,Math.min(MAXV*sl,p.vx))}if(Math.abs(p.vx)<0.05)p.vx=0;
+  if(p.drill){const o=p.drill;if(!keys.act||soilUnder()!==o){p.drill=null}else{p.vx=0;o.prog++;if(frameN%4===0)parts.push({x:o.x+9+(rnd()-0.5)*8,y:o.y-3,vx:(rnd()-0.5)*1.6,vy:-1-rnd()*1.2,t:18,col:['#7a5432','#9c7450','#c9b89a'][frameN%3],g:0.14});if(frameN%10===0)tone(90+o.prog,0.05,'square',0.03);
+    if(o.prog>=SOIL_DIG){o.done=true;p.drill=null;const v=addPts(SOIL_PTS);floaters.push({x:o.x-30,y:o.y-30,txt:'+'+v+' SOIL SAMPLE',t:80,col:'#c8b07a'});burst(o.x+9,o.y-4,'#8d6440',14);sfx.pick()}}}
   p.coyote=p.onGround?6:p.coyote-1;
   if(p.jumpBuf>0){p.jumpBuf--;if(p.coyote>0&&mesoT<100){p.vy=mesoT?JUMP*0.6:JUMP;p.coyote=0;p.jumpBuf=0;sfx.jump()}}
   if(!keys.jump&&p.vy<-2)p.vy=-2;
@@ -1026,7 +1042,7 @@ function update(){
   npcs=npcs.filter(n=>!n.gone);
   // shots
   for(const s of shots){s.age=(s.age||0)+1;s.vy+=s.g;s.x+=s.vx;s.y+=s.vy;s.rot+=0.5;s.life--;
-    for(const e of enemies)if(!e.dead&&ov(s,e)){damage(e,s.dmg||2,'throw');s.life=0;break}
+    for(const e of enemies)if(!e.dead&&ov(s,e)&&!(s.hit&&s.hit.has(e))){damage(e,s.dmg||2,'throw');if(role==='geo'&&!s.pierced){s.pierced=true;s.hit=new Set([e]);burst(s.x+5,s.y,'#c9ced6',4)}else s.life=0;break}
     if(s.sup)for(let i=0;i<3;i++)parts.push({x:s.x+4+rnd()*8,y:s.y+rnd()*5,vx:-s.vx*(0.05+rnd()*0.1),vy:-0.25-rnd()*0.6,t:18+rnd()*14,g:-0.01,flame:role!=='labtech',col:rnd()<0.5?'#e6f6ff':'#9fd8ff',s:rnd()<0.4?3:2});
     if(s.life>0&&boss&&ov(s,boss)){damage(boss,s.dmg||2,'throw');if(s.sup){burst(s.x+7,s.y,'#ffb000',14);floaters.push({x:boss.x-4,y:boss.y-12,txt:'SUPER HIT!',t:50,col:'#ffb000'})}s.life=0}
     if(s.life>0)for(const h of hazards)if(h.hittable&&!h.dead&&ov(s,h)){h.dead=true;s.life=0;addPts(50);burst(h.x+4,h.y+4,'#e9e4d6',8);break}
@@ -1307,7 +1323,7 @@ function drawChisel(x,y,face){
   else{rect(x+8,y,4,3,'#ff7a1a');rect(x+8,y,4,1,'#ffa35c');rect(x+7,y,1,3,'#9aa3ad');rect(x+1,y+1,6,1,'#c8d0da');rect(x+2,y,5,1,'#e8eef4');rect(x+2,y+2,5,1,'#7e8792');rect(x,y+1,1,1,'#ffffff')}
 }
 // Each role's tool. They all work the same; only the look and the words change.
-const TOOLS={assessor:{one:'CHISEL',many:'CHISELS',desc:'chisel'},surveyor:{one:'HAMMER',many:'HAMMERS',desc:'hammer'},labtech:{one:'SPRAY',many:'SPRAYS',desc:'spray bottle'}};
+const TOOLS={assessor:{one:'CHISEL',many:'CHISELS',desc:'chisel'},surveyor:{one:'HAMMER',many:'HAMMERS',desc:'hammer'},labtech:{one:'SPRAY',many:'SPRAYS',desc:'spray bottle'},geo:{one:'AUGER BIT',many:'AUGER BITS',desc:'auger bit'}};
 const tool=r=>TOOLS[r||role]||TOOLS.assessor;
 function drawHammer(x,y,face){
   if(face>0){rect(x,y+1,8,2,'#a8743e');rect(x,y+1,8,1,'#c99158');rect(x,y+1,2,2,'#2a2f3a');rect(x+8,y-2,4,7,'#9aa3ad');rect(x+8,y-2,4,1,'#e8eef4');rect(x+11,y-2,1,7,'#6b737e')}
@@ -1318,7 +1334,12 @@ function drawSpray(x,y,face){
   const bx=face>0?x+1:x+6;rect(bx,y-1,5,6,'#2c6fd1');rect(bx+1,y,3,4,'#7fb6f0');rect(bx+1,y,1,4,'#c9e4ff');
   const hx=face>0?x+1:x+5;rect(hx,y-3,6,2,'#84bd41');rect(face>0?x+7:x+3,y-3,2,1,'#84bd41');rect(face>0?x+9:x+2,y-3,1,1,'#253746');rect(face>0?x+4:x+7,y-1,1,2,'#5f8f2c');
 }
-function drawTool(x,y,face,r){const t=r||role;if(t==='surveyor')drawHammer(x,y,face);else if(t==='labtech')drawSpray(x,y,face);else drawChisel(x,y,face)}
+// Hand auger: T-handle at the back, steel shaft, spiral bit at the front (the bit turns as it works)
+function drawAugerBit(x,y,ph){for(let i=0;i<6;i++){const up=((i+ph)&1);rect(x+i,y+(up?0:2),1,2,'#c9ced6');rect(x+i,y+(up?2:0),1,2,'#6b737e')}rect(x+6,y+1,2,2,'#9aa3ad')}
+function drawAuger(x,y,face,ph){ph=ph|0;
+  if(face>0){rect(x,y-2,1,6,'#a8743e');rect(x-1,y-2,3,1,'#c99158');rect(x-1,y+3,3,1,'#c99158');rect(x+1,y+1,6,1,'#9aa3ad');drawAugerBit(x+7,y,ph)}
+  else{rect(x+11,y-2,1,6,'#a8743e');rect(x+10,y-2,3,1,'#c99158');rect(x+10,y+3,3,1,'#c99158');rect(x+5,y+1,6,1,'#9aa3ad');ctx.save();ctx.translate(x+5,0);ctx.scale(-1,1);drawAugerBit(0,y,ph);ctx.restore()}}
+function drawTool(x,y,face,r){const t=r||role;if(t==='geo')drawAuger(x,y,face,0);else if(t==='surveyor')drawHammer(x,y,face);else if(t==='labtech')drawSpray(x,y,face);else drawChisel(x,y,face)}
 function drawWater(x,y,len,face){for(let i=0;i<len;i+=2){const dy=Math.round(Math.sin(i*1.7+frameN)*1);rect(face>0?x+i:x-i,y+dy,2,1,i%4?'#9fd8ff':'#e6f6ff')}}
 function drawMaskIcon(x,y){rect(x+1,y+3,10,7,'#1b1b24');rect(x+2,y+4,8,5,'#38e0ff');rect(x+3,y+5,3,2,'#c9fbff');rect(x,y+5,1,3,'#1b1b24');rect(x+11,y+5,1,3,'#1b1b24');rect(x+10,y-2,2,6,'#f5c400');rect(x+9,y-3,3,2,'#f5c400')}
 function drawPickup(k){
@@ -1340,16 +1361,18 @@ function drawPlayer(){
   if(p.mask>0){rect(X+3,Y+3,6,4,'#1b1b24');rect(X+4,Y+4,4,2,'#38e0ff');rect(p.face>0?X+3:X+8,Y-1,1,5,'#f5c400')}
   if(p.vac>0){const bx=p.face>0?X-3:X+10;rect(bx,Y+7,4,7,'#f5c400');rect(bx,Y+7,4,1,'#ffe066');const nx=p.face>0?X+11:X-6;rect(p.face>0?X+9:X-1,Y+11,3,1,'#3a3d47');rect(nx,Y+10,5,3,'#3a3d47');if(frameN%6<3)rect(p.face>0?nx+5:nx-1,Y+11,1,1,'#e9e4d6');if(p.vac<120&&frameN%10<5){ctx.globalAlpha=0.5;rect(X-2,Y-2,16,20,'#f5c400');ctx.globalAlpha=1}}
   const hx=p.face>0?X+9:X-1,hy=Y+8;
-  if(p.attackT>0&&p.attackKind==='stab'&&role==='surveyor'){
+  if(p.drill){const ax=p.face>0?Math.round(p.x)+p.w+1:Math.round(p.x)-4,ph=frameN>>1,gy=Math.round(p.y)+p.h;rect(ax-3,hy-5,8,2,(ph&2)?'#c99158':'#a8743e');rect(ax,hy-3,2,4,'#a8743e');rect(ax,hy+1,2,gy-hy-5,'#9aa3ad');for(let i=0;i<5;i++)rect(ax-1+((i+ph)&1),gy-5+i,3,1,i%2?'#6b737e':'#e0e4ea')}
+  else if(p.attackT>0&&p.attackKind==='stab'&&role==='surveyor'){
     // Hammer swing: raised overhead, then down in an arc like hitting a nail
     const k=Math.min(1,(14-p.attackT)/8),ang=(-115+140*k*k)*Math.PI/180,f=p.face,px=f>0?hx+1:hx+1,py=hy+1;
     if(k>0.25&&k<1)for(let i=1;i<4;i++){const a2=ang-i*0.32;ctx.globalAlpha=0.35-i*0.08;rect(Math.round(px+f*Math.cos(a2)*11),Math.round(py+Math.sin(a2)*11),2,2,'#e8eef4')}
     ctx.globalAlpha=1;ctx.save();ctx.translate(px,py);ctx.scale(f,1);ctx.rotate(ang);drawHammer(0,-2,1);ctx.restore();
     if(k>=1&&p.attackT>3){const ix=Math.round(px+f*Math.cos(ang)*11),iy=Math.round(py+Math.sin(ang)*11);rect(ix-1,iy-3,1,2,'#ffd04a');rect(ix+2,iy-2,2,1,'#ffd04a');rect(ix-3,iy,2,1,'#ffd04a')}}
-  else if(p.attackT>0&&p.attackKind==='stab'){if(role==='labtech'){if(p.face>0){drawSpray(hx+1,hy+1,1);drawWater(hx+11,hy-2,p.attackT>4?14:7,1)}else{drawSpray(hx-11,hy+1,-1);drawWater(hx-10,hy-2,p.attackT>4?14:7,-1)}}else{const ext=p.attackT>10?2:p.attackT>4?9:4;if(p.face>0)drawTool(hx+ext-2,hy,1);else drawTool(hx-ext-9,hy,-1)}}
+  else if(p.attackT>0&&p.attackKind==='stab'){if(role==='labtech'){if(p.face>0){drawSpray(hx+1,hy+1,1);drawWater(hx+11,hy-2,p.attackT>4?14:7,1)}else{drawSpray(hx-11,hy+1,-1);drawWater(hx-10,hy-2,p.attackT>4?14:7,-1)}}else if(role==='geo'){const ext=p.attackT>10?2:p.attackT>4?9:4,ph=frameN>>1;if(p.face>0)drawAuger(hx+ext-2,hy,1,ph);else drawAuger(hx-ext-9,hy,-1,ph);if(p.attackT>4&&frameN%3===0)parts.push({x:p.face>0?hx+ext+12:hx-ext-10,y:hy+rnd()*3,vx:p.face*(0.5+rnd()),vy:-0.6-rnd(),t:12,col:'#a07850',g:0.15})}
+    else{const ext=p.attackT>10?2:p.attackT>4?9:4;if(p.face>0)drawTool(hx+ext-2,hy,1);else drawTool(hx-ext-9,hy,-1)}}
   else if(p.attackT>0&&role==='labtech'){const L=p.attackT>6?30:18;if(p.face>0){drawSpray(hx+1,hy+1,1);drawWater(hx+11,hy-2,L,1)}else{drawSpray(hx-11,hy+1,-1);drawWater(hx-10,hy-2,L,-1)}}
   else if(p.attackT>0)rect(hx,hy-2,2,2,'#e8b48a');
-  else if(p.onGround){if(p.face>0)drawTool(hx-3,hy+1,1);else drawTool(hx-7,hy+1,-1)}
+  else if(p.onGround&&!p.drill){if(p.face>0)drawTool(hx-3,hy+1,1);else drawTool(hx-7,hy+1,-1)}
 }
 function drawEnemy(e){
   const X=Math.round(e.x),Y=Math.round(e.y);
@@ -1427,20 +1450,21 @@ function title(){
   const lead=board.docs[0];
   text(lead?('BOARD LEADER  '+cleanTag(lead.tag)+'  '+(lead.best|0)):(hi?'YOUR BEST  '+hi:''),W/2,124,'#ebe6d6',6,'center');
 }
-const SEL={x0:16,w:112,gap:8,y:30,h:138};
+const SEL={x0:8,w:180,gap:8,y:24,h:66,gy:6};
+const selRect=i=>({x:SEL.x0+(i%2)*(SEL.w+SEL.gap),y:SEL.y+Math.floor(i/2)*(SEL.h+SEL.gy)});
 function selectScreen(){
   WD=WORLDS[0];bgRural();rect(0,GY,W,H-GY,'#6b4a32');rect(0,GY,W,4,'#5fae3e');
   rect(0,0,W,H,'rgba(8,9,14,0.6)');
   text('CHOOSE YOUR ROLE',W/2,12,'#f5c400',10,'center');
-  ROLE_ORDER.forEach((r,i)=>{const R_=ROLES[r],x=SEL.x0+i*(SEL.w+SEL.gap),on=i===selIdx;
-    rect(x,SEL.y,SEL.w,SEL.h,on?'rgba(40,36,18,0.95)':'rgba(20,22,28,0.92)');
-    const bc=on?'#f5c400':'#3a3f4a';rect(x,SEL.y,SEL.w,2,bc);rect(x,SEL.y+SEL.h-2,SEL.w,2,bc);rect(x,SEL.y,2,SEL.h,bc);rect(x+SEL.w-2,SEL.y,2,SEL.h,bc);
-    const k=on?(Math.floor(frameN/8)%2?'r1':'r2'):'idle';ctx.drawImage(PLR[r][k][1],x+SEL.w/2-18,SEL.y+8,36,48);
-    {ctx.save();ctx.translate(x+SEL.w/2+14,SEL.y+32);ctx.scale(2,2);drawTool(0,0,1,r);ctx.restore()}
-    text(R_.name,x+SEL.w/2,SEL.y+64,on?'#f5c400':'#ebe6d6',8,'center');
-    R_.perks.forEach((l,j)=>text(l,x+SEL.w/2,SEL.y+82+j*12,on?'#ebe6d6':'#9aa0ae',6,'center'));
+  ROLE_ORDER.forEach((r,i)=>{const R_=ROLES[r],{x,y}=selRect(i),on=i===selIdx;
+    rect(x,y,SEL.w,SEL.h,on?'rgba(40,36,18,0.95)':'rgba(20,22,28,0.92)');
+    const bc=on?'#f5c400':'#3a3f4a';rect(x,y,SEL.w,2,bc);rect(x,y+SEL.h-2,SEL.w,2,bc);rect(x,y,2,SEL.h,bc);rect(x+SEL.w-2,y,2,SEL.h,bc);
+    const k=on?(Math.floor(frameN/8)%2?'r1':'r2'):'idle';ctx.drawImage(PLR[r][k][1],x+8,y+9,36,48);
+    {ctx.save();ctx.translate(x+40,y+38);ctx.scale(1.5,1.5);drawTool(0,0,1,r);ctx.restore()}
+    const cx=x+116;text(R_.name,cx,y+7,on?'#f5c400':'#ebe6d6',8,'center');
+    R_.perks.forEach((l,j)=>text(l,cx,y+21+j*10,on?'#ebe6d6':'#9aa0ae',6,'center'));
   });
-  if(Math.floor(frameN/30)%2)text(touchMode?'TAP A ROLE, TAP AGAIN TO START':'ARROWS TO CHOOSE · SPACE TO START',W/2,SEL.y+SEL.h+12,'#ff7a1a',6,'center');
+  if(Math.floor(frameN/30)%2)text(touchMode?'TAP A ROLE, TAP AGAIN TO START':'ARROWS TO CHOOSE · SPACE TO START',W/2,SEL.y+2*SEL.h+SEL.gy+10,'#ff7a1a',6,'center');
 }
 function draw(){
   if(state==='title'){title();return}
@@ -1448,6 +1472,7 @@ function draw(){
   background();
   const sx=shake>0?Math.round((rnd()-0.5)*Math.min(6,shake)):0,sy=shake>0?Math.round((rnd()-0.5)*Math.min(4,shake)):0;
   ctx.save();ctx.translate(-Math.round(camX)+sx,sy);
+  drawSoils();
   for(const pr of props)if(pr.x>camX-60&&pr.x<camX+W+10)drawProp(pr);
   for(const c of cavs)if(c.x>camX-60&&c.x<camX+W+10)drawCav(c);
   for(const s of solids){if(s.x>camX+W+40||s.x+s.w<camX-40)continue;if(s.kind==='ground')drawGround(s)}
@@ -1460,7 +1485,7 @@ function draw(){
   for(const h of hazards)drawHazard(h);
   if(role==='labtech')for(const s of shots)if((s.age||0)<24&&p.attackKind==='throw'){const f=Math.sign(s.vx)||1,nx=f>0?p.x+20:p.x-11,ny=p.y+6,tx=s.x+5,ty=s.y+1,d=Math.abs(tx-nx);
     if(d<160)for(let i=0;i<d;i+=2){const k=i/(d||1),wy=Math.round(ny+(ty-ny)*k+Math.sin(i*1.3+frameN)*(0.5+k));rect(Math.round(nx+(tx-nx)*k),wy,2,1,i%4?'#9fd8ff':'#e6f6ff')}}
-  for(const s of shots){ctx.save();ctx.translate(Math.round(s.x+5),Math.round(s.y+1));if(s.sup){const wt=role==='labtech';ctx.globalAlpha=0.5;rect(-9,-5,20,10,wt?'#2c8fe0':'#ff6a1a');rect(-6,-3,14,6,wt?'#bfe6ff':'#ffd04a');ctx.globalAlpha=1;ctx.scale(1.6,1.6)}if(role==='labtech'){const f=Math.sign(s.vx)||1;drawWater(f>0?-4:4,0,26,-f);drawWater(f>0?-4:4,1,18,-f);rect(-3,-1,6,4,'#7fc4ff');rect(-2,0,3,2,'#e6f6ff')}else{ctx.rotate(s.rot*Math.sign(s.vx));drawTool(-6,-1,1)}ctx.restore()}
+  for(const s of shots){ctx.save();ctx.translate(Math.round(s.x+5),Math.round(s.y+1));if(s.sup){const wt=role==='labtech';ctx.globalAlpha=0.5;rect(-9,-5,20,10,wt?'#2c8fe0':'#ff6a1a');rect(-6,-3,14,6,wt?'#bfe6ff':'#ffd04a');ctx.globalAlpha=1;ctx.scale(1.6,1.6)}if(role==='geo'){const f=Math.sign(s.vx)||1;ctx.scale(f,1);drawAugerBit(-4,-1,frameN>>1);if(frameN%2===0){ctx.globalAlpha=0.5;rect(-8,0,3,1,'#c9ced6');ctx.globalAlpha=1}}else if(role==='labtech'){const f=Math.sign(s.vx)||1;drawWater(f>0?-4:4,0,26,-f);drawWater(f>0?-4:4,1,18,-f);rect(-3,-1,6,4,'#7fc4ff');rect(-2,0,3,2,'#e6f6ff')}else{ctx.rotate(s.rot*Math.sign(s.vx));drawTool(-6,-1,1)}ctx.restore()}
   if(auditRun){const ax=Math.round(auditRun.x),ay=Math.round(auditRun.y);ctx.drawImage(AUDITOR.run[Math.floor(auditRun.t/6)%2],ax,ay);
     if(frameN%30<20){rect(ax-8,ay-15,30,10,'#84bd41');rect(ax-7,ay-14,28,8,'#0d0f14');text('AUDIT!',ax+7,ay-13,'#84bd41',6,'center')}}
   if(auditorT>0){const ax=p.x+22+(auditorT<80?(80-auditorT)*1.2:0),ay=Math.round(auditY);ctx.globalAlpha=auditorT<80?auditorT/80:1;ctx.drawImage(AUDITOR[auditorT<80?1:0],Math.round(ax),ay);if(state==='audit'&&frameN%40<26)text('?',ax+3,ay-10,'#84bd41',8);ctx.globalAlpha=1}
@@ -1537,7 +1562,7 @@ const SQN_LINKEDIN='https://nz.linkedin.com/company/sqn-consulting-new-zealand';
 const GAME_URL='https://cdly17.github.io/FibreHunter/';
 const gameUrl=()=>(/^https?:$/.test(location.protocol)&&!/^(localhost|127\.|0\.0\.0\.0)/.test(location.hostname))?location.origin+location.pathname:GAME_URL;
 let lastRun=null;try{lastRun=JSON.parse(LS.get('fhLastRun')||'null')}catch(e){}
-const ROLE_BY_CODE={L:'labtech',S:'surveyor',A:'assessor'};
+const ROLE_BY_CODE={L:'labtech',S:'surveyor',A:'assessor',G:'geo'};
 function bestRun(){
   const me=board.docs.find(d=>d.id===pid);
   if(me){const rp=String(me.reached||'1-1').split(' '),w=parseInt(rp[0],10)||1;return{score:me.best,code:rp[1]||'',reached:rp[0],world:(WORLDS[w-1]||WORLDS[0]).name,tag:cleanTag(me.tag),team:cleanTeam(me.team)}}
@@ -1558,7 +1583,7 @@ async function makeCard(run){
   s=fitFont(g,'FIBRE HUNTER',52,MW);g.fillStyle='#000000';g.fillText('FIBRE HUNTER',X+4,64);g.fillStyle='#f5c400';g.fillText('FIBRE HUNTER',X,60);
   if(run.generic){
     g.font='24px "Press Start 2P", monospace';g.fillStyle='#ebe6d6';g.fillText('A 16-BIT ASBESTOS HUNT',X,150);
-    g.fillStyle='#84bd41';fitFont(g,'LAB TECH · SURVEYOR · ASSESSOR',22,MW);g.fillText('LAB TECH · SURVEYOR · ASSESSOR',X,210);
+    g.fillStyle='#84bd41';fitFont(g,'4 ROLES · LAB TECH TO GEOSCIENTIST',22,MW);g.fillText('4 ROLES · LAB TECH TO GEOSCIENTIST',X,210);
     g.fillStyle='#ebe6d6';fitFont(g,'5 WORLDS · 5 BOSSES · BONUS SHED',22,MW);g.fillText('5 WORLDS · 5 BOSSES · BONUS SHED',X,256);
     g.fillStyle='#f5c400';fitFont(g,'CAN YOU BEAT THE TEAM?',30,MW);g.fillText('CAN YOU BEAT THE TEAM?',X,380);
   } else {
